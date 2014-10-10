@@ -3,12 +3,29 @@ module Errapi
   class ValidationContext
     attr_reader :errors
 
-    def initialize
+    def initialize config
+
+      @config = config
       @errors = []
+
+      @error_class = Class.new do
+        config.plugins.each do |plugin|
+          include plugin.const_get('ValidationErrorMixin') if plugin.const_defined? 'ValidationErrorMixin'
+        end
+      end
     end
 
-    def add message, options = {}
-      @errors << ValidationError.new(message, options)
+    def add options = {}
+
+      error = @error_class.new
+
+      @config.plugins.each do |plugin|
+        plugin.build_error error, options if plugin.respond_to? :build_error
+      end
+
+      yield error if block_given?
+
+      @errors << error
     end
 
     def error? criteria = {}

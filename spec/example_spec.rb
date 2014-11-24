@@ -32,4 +32,27 @@ RSpec.describe 'errapi' do
     expect(context.error?(code: 'broken')).to be(false)
     expect(context.error?(code: /broke/)).to be(false)
   end
+
+  it "should provide a model extension to validate objects" do
+
+    klass = Class.new do
+      include Errapi::Model
+
+      attr_accessor :name
+
+      errapi do
+        validates :name, presence: true
+      end
+    end
+
+    o = klass.new
+    o.validate context
+    expect(context.error?).to be(true)
+    expect(context.error?(message: /cannot be null or empty/)).to be(true)
+
+    context.clear
+    o.name = 'foo'
+    o.validate context
+    expect(context.error?).to be(false)
+  end
 end

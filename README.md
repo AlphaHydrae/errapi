@@ -17,6 +17,10 @@ gem 'errapi', '~> 0.1.0'
 
 Then run `bundle install`.
 
+### Requirements
+
+* Ruby 2+
+
 ## Meta
 
 * **Author:** Simon Oulevay (Alpha Hydrae)

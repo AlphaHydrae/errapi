@@ -2,19 +2,13 @@ require 'helper'
 
 RSpec.describe 'errapi' do
 
-  let(:config){ Errapi::Configuration.new }
-  let(:context){ Errapi::ValidationContext.new config }
-
-  before :each do
-    config.plugin_factory Errapi::Plugins::Message
-    config.plugin_factory Errapi::Plugins::Code
-  end
+  let(:context){ Errapi::ValidationContext.new }
 
   it "should collect and find errors" do
 
-    context.add message: 'foo'
-    context.add message: 'bar', code: 'auth.failed'
-    context.add message: 'baz', code: 'json.invalid'
+    context.add_error message: 'foo'
+    context.add_error message: 'bar', code: 'auth.failed'
+    context.add_error{ |err| err.set message: 'baz', code: 'json.invalid' }
 
     %w(foo bar baz).each do |message|
       expect(context.error?(message: message)).to be(true)

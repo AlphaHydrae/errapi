@@ -10,14 +10,14 @@ module Errapi
     def validates *args
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
-      general_options = options.delete(:all) || {}
 
       args = [ nil ] if args.empty?
 
       args.each do |target|
         options.each_pair do |validator,validator_options|
+          next unless validator_options
           if validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
-            @validations << general_options.merge(validator_options).merge(validator: validator, target: target)
+            @validations << validator_options.merge(validator: validator, target: target)
           end
         end
       end

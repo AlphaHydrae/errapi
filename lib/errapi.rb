@@ -7,12 +7,12 @@ Dir[File.join File.dirname(__FILE__), File.basename(__FILE__, '.*'), '*.rb'].eac
 module Errapi
 
   def self.config
+    @config ||= default_config
+  end
 
-    unless @config
-      @config = Configuration.new
-      @config.validators[:presence] = Errapi::Validators::Presence
+  def self.default_config
+    Configuration.new.tap do |config|
+      config.validators[:presence] = Errapi::Validators::Presence
     end
-
-    @config
   end
 end

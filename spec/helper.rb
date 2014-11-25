@@ -23,6 +23,7 @@ SimpleCov.formatter = SimpleCov::Formatter::MultiFormatter[
 ]
 
 require 'rspec'
+require 'rspec/collection_matchers'
 
 Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each{ |f| require f }
 

@@ -2,8 +2,17 @@ module Errapi
 
   module Model
 
-    def validate context, options = {}
-      self.class.errapi.validate self, context, options
+    def validate *args
+
+      options = args.last.kind_of?(Hash) ? args.pop : {}
+
+      name, context = :default, args.shift
+      if context.kind_of? Symbol
+        name = context
+        context = args.shift
+      end
+
+      self.class.errapi(name).validate self, context, options
     end
 
     def Model.included mod
@@ -12,8 +21,9 @@ module Errapi
 
     module ClassMethods
 
-      def errapi &block
-        @errapi_validations ||= Validations.new(&block)
+      def errapi name = nil, &block
+        @errapi_validations ||= {}
+        @errapi_validations[name || :default] ||= Validations.new(&block)
       end
     end
   end

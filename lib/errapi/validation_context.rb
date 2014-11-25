@@ -26,6 +26,10 @@ module Errapi
       @errors.any?{ |err| err.matches? criteria }
     end
 
+    def valid?
+      !error?
+    end
+
     def clear
       @errors.clear
     end

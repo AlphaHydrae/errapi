@@ -49,10 +49,35 @@ RSpec.describe 'errapi' do
     o.validate context
     expect(context.error?).to be(true)
     expect(context.error?(message: /cannot be null or empty/)).to be(true)
+    expect(context.errors).to have(1).item
 
     context.clear
     o.name = 'foo'
     o.validate context
     expect(context.error?).to be(false)
+  end
+
+  it "should validate parsed JSON" do
+
+    h = {
+      foo: 'bar',
+      baz: [
+        { a: 'b' },
+        { a: 'c' },
+        { a: nil }
+      ]
+    }
+
+    validations = Errapi::Validations.new do
+      validates :foo, presence: true
+      validates :qux, presence: true
+      validates_each :baz, :a, presence: true
+    end
+
+    validations.validate h, context
+
+    expect(context.error?).to be(true)
+    expect(context.error?(message: /cannot be null or empty/)).to be(true)
+    expect(context.errors).to have(2).items
   end
 end

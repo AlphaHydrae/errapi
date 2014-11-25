@@ -1,37 +1,15 @@
 module Errapi
 
   class ValidationContext
-    attr_reader :errors
+    attr_reader :state
 
-    def initialize
-      @errors = []
+    def initialize state
+      @state = state
     end
 
     def add_error options = {}, &block
-      @errors << ValidationError.new(options, &block)
+      @state.add_error options, &block
       self
-    end
-
-    def validate value, options = {}
-      if yield value, options
-        true
-      else
-        add_error options[:error]
-        false
-      end
-    end
-
-    def error? criteria = {}
-      return !@errors.empty? if criteria.empty?
-      @errors.any?{ |err| err.matches? criteria }
-    end
-
-    def valid?
-      !error?
-    end
-
-    def clear
-      @errors.clear
     end
   end
 end

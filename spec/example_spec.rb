@@ -61,6 +61,7 @@ RSpec.describe 'errapi' do
 
     h = {
       foo: 'bar',
+      bar: {},
       baz: [
         { a: 'b' },
         { a: 'c' },
@@ -68,8 +69,13 @@ RSpec.describe 'errapi' do
       ]
     }
 
+    bar_validations = Errapi::Validations.new do
+      validates :foo, presence: true
+    end
+
     validations = Errapi::Validations.new do
       validates :foo, presence: true
+      validates :bar, with: bar_validations
       validates :qux, presence: true
       validates_each :baz, :a, presence: true
     end
@@ -78,6 +84,6 @@ RSpec.describe 'errapi' do
 
     expect(context.error?).to be(true)
     expect(context.error?(message: /cannot be null or empty/)).to be(true)
-    expect(context.errors).to have(2).items
+    expect(context.errors).to have(3).items
   end
 end

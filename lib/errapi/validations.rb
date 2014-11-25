@@ -36,13 +36,17 @@ module Errapi
 
     private
 
-    def validator config, name
-      config.validators[name].new
+    def validator config, validation
+      if validation[:validator]
+        config.validators[validation[:validator]].new
+      elsif validation[:with]
+        validation[:with]
+      end
     end
 
     def perform_validation value, validation, context, config
       target = validation[:target]
-      validator = validator config, validation[:validator]
+      validator = validator config, validation
       validator.validate extract(target, value), context, validation
     end
 
@@ -67,9 +71,15 @@ module Errapi
 
       args.each do |target|
         options.each_pair do |validator,validator_options|
+
           next unless validator_options
-          validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
-          @validations << validator_options.merge(validator: validator, target: target).merge(each_options)
+
+          if validator == :with
+            @validations << { with: validator_options, target: target }.merge(each_options)
+          else
+            validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
+            @validations << validator_options.merge(validator: validator, target: target).merge(each_options)
+          end
         end
       end
     end

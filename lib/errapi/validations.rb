@@ -4,20 +4,20 @@ module Errapi
 
     def initialize &block
       @validations = []
-      instance_eval &block if block_given?
+      instance_eval &block if block
     end
 
-    def validates *args
-      register_validations *args
+    def validates *args, &block
+      register_validations *args, &block
     end
 
-    def validates_each *args
+    def validates_each *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
       options[:each] = args.shift
 
       args << options
-      register_validations *args
+      register_validations *args, &block
     end
 
     def validate value, context, options = {}
@@ -74,31 +74,39 @@ module Errapi
         target.call value
       elsif value.respond_to? :[]
         value[target]
-      elsif !target.nil?
+      elsif target.nil?
+        value
+      elsif value.respond_to?(target)
         value.send target
       else
-        value
+        nil # TODO: use singleton object to identify when extraction failed
       end
     end
 
-    def register_validations *args
+    def register_validations *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
       each_options = options[:each] ? { each: options.delete(:each) } : {}
 
+      custom_validator = if options[:with]
+        custom_validator = options.delete :with
+      elsif block
+        custom_validator = Errapi::Validations.new(&block)
+      end
+
+      # TODO: fail if there are no validations declared
       args = [ nil ] if args.empty?
 
       args.each do |target|
+
+        if custom_validator
+          @validations << { with: custom_validator, target: target }
+        end
+
         options.each_pair do |validator,validator_options|
-
           next unless validator_options
-
-          if validator == :with
-            @validations << { with: validator_options, target: target }.merge(each_options)
-          else
-            validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
-            @validations << validator_options.merge(validator: validator, target: target).merge(each_options)
-          end
+          validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
+          @validations << validator_options.merge(validator: validator, target: target).merge(each_options)
         end
       end
     end

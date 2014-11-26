@@ -75,19 +75,25 @@ RSpec.describe 'errapi' do
     end
 
     validations = Errapi::Validations.new do
+
       validates :foo, presence: true
       validates :bar, with: bar_validations
       validates :qux, presence: true
       validates_each :baz, :a, presence: true
+
+      validates :bar do
+        validates :baz, presence: true
+      end
     end
 
     validations.validate h, context
 
     expect(state.error?).to be(true)
     expect(state.error?(message: /cannot be null or empty/)).to be(true)
-    expect(state.errors).to have(3).items
+    expect(state.errors).to have(4).items
     expect(state.error?(location: 'bar.foo')).to be(true)
     expect(state.error?(location: 'qux')).to be(true)
     expect(state.error?(location: 'baz.2.a')).to be(true)
+    expect(state.error?(location: 'bar.baz')).to be(true)
   end
 end

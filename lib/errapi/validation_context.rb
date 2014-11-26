@@ -22,16 +22,51 @@ module Errapi
       self
     end
 
+    def with options = {}, &block
+
+      original_type = @current_type
+      original_location = @current_location
+
+      @current_type = options[:type] if options[:type]
+      @current_location = actual_location options
+
+      yield
+
+      @current_type = original_type
+      @current_location = original_location
+    end
+
+    def validate value, options = {}
+      if yield value, self, options
+        true
+      else
+        add_error options[:error]
+        false
+      end
+    end
+
     private
 
-    def actual_location options
+    def actual_location options = {}
       if options[:location]
-        options[:location]
+        absolute_location options[:location]
       elsif options[:relative_location]
-        @current_location ? "#{@current_location}.#{options[:relative_location]}" : options[:relative_location]
+        @current_location ? relative_location(@current_location, options[:relative_location]) : absolute_location(options[:relative_location])
       else
         @current_location
       end
+    end
+
+    def absolute_location location
+      location_to_string location
+    end
+
+    def relative_location base, relative
+      "#{location_to_string(base)}.#{location_to_string(relative)}"
+    end
+
+    def location_to_string location
+      location.kind_of?(Hash) && location.key?(:value) ? location[:value].to_s : location.to_s
     end
   end
 end

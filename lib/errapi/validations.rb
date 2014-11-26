@@ -25,9 +25,21 @@ module Errapi
       config = options.delete(:config) || Errapi.config
 
       @validations.each do |validation|
-        if options[:each]
-          values = extract options[:each], value
-          values.each{ |value| perform_validation value, validation, context, config } if values.kind_of? Array
+        if validation[:each]
+
+          values = extract validation[:each], value
+          next unless values.kind_of? Array
+
+          context_options = {}
+          context_options[:relative_location] = { type: :property, value: validation[:each] } unless validation[:each].respond_to?(:call)
+
+          context.with context_options do
+            values.each.with_index do |value,i|
+              context.with relative_location: { type: :array_index, value: i } do
+                perform_validation value, validation, context, config
+              end
+            end
+          end
         else
           perform_validation value, validation, context, config
         end
@@ -45,9 +57,16 @@ module Errapi
     end
 
     def perform_validation value, validation, context, config
+
       target = validation[:target]
       validator = validator config, validation
-      validator.validate extract(target, value), context, validation
+
+      context_options = {}
+      context_options[:relative_location] = target unless target.respond_to?(:call)
+
+      context.with context_options do
+        validator.validate extract(target, value), context, validation
+      end
     end
 
     def extract target, value

@@ -86,5 +86,8 @@ RSpec.describe 'errapi' do
     expect(state.error?).to be(true)
     expect(state.error?(message: /cannot be null or empty/)).to be(true)
     expect(state.errors).to have(3).items
+    expect(state.error?(location: 'bar.foo')).to be(true)
+    expect(state.error?(location: 'qux')).to be(true)
+    expect(state.error?(location: 'baz.2.a')).to be(true)
   end
 end

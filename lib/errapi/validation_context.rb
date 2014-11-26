@@ -24,6 +24,11 @@ module Errapi
 
     def with options = {}, &block
 
+      if options.empty?
+        yield
+        return self
+      end
+
       original_type = @current_type
       original_location = @current_location
 
@@ -34,6 +39,8 @@ module Errapi
 
       @current_type = original_type
       @current_location = original_location
+
+      self
     end
 
     def validate value, options = {}

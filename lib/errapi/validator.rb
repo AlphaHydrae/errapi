@@ -1,5 +1,5 @@
 module Errapi
-  module Validators
+  module Validator
   end
 end
 

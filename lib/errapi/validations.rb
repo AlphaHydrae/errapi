@@ -63,6 +63,8 @@ module Errapi
 
     def perform_validation value, validation, context, config
 
+      return if validation[:conditions].any?{ |condition| !evaluate_condition(value, condition) }
+
       target = validation[:target]
       validator = validator config, validation
 
@@ -77,6 +79,23 @@ module Errapi
       context.with context_options do
         validator.validate extract(target, value), context, validation
       end
+    end
+
+    def evaluate_condition value, condition
+
+      conditional, condition_value = if condition.key? :if
+        [ lambda{ |x| !!x }, condition[:if] ]
+      elsif condition.key? :unless
+        [ lambda{ |x| !x }, condition[:unless] ]
+      end
+
+      result = if condition_value.kind_of? Symbol
+        value.kind_of?(Hash) ? value[condition_value] : value.send(condition_value)
+      elsif condition_value.respond_to? :call
+        condition_value.call value
+      end
+
+      conditional.call result
     end
 
     def extract target, value
@@ -105,6 +124,8 @@ module Errapi
       custom_validators << options.delete(:using) if options[:using]
       custom_validators << Errapi::Validations.new(&block) if block
 
+      conditions = extract_conditions! options
+
       # TODO: fail if there are no validations declared
       args = [ nil ] if args.empty?
 
@@ -112,15 +133,24 @@ module Errapi
 
         unless custom_validators.empty?
           custom_validators.each do |custom_validator|
-            @validations << { using: custom_validator, target: target }.merge(validation_options)
+            @validations << { using: custom_validator, target: target, conditions: conditions.dup }.merge(validation_options)
           end
         end
 
         options.each_pair do |validator,validator_options|
           next unless validator_options
           validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
+          validator_options[:conditions] = conditions + extract_conditions!(validator_options)
           @validations << validator_options.merge(validator: validator, target: target).merge(validation_options)
         end
+      end
+    end
+
+    def extract_conditions! options = {}
+      # TODO: wrap conditions in objects that can cache the result
+      [].tap do |conditions|
+        conditions << { if: options.delete(:if) } if options[:if]
+        conditions << { unless: options.delete(:unless) } if options[:unless]
       end
     end
   end

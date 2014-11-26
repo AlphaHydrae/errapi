@@ -104,4 +104,44 @@ RSpec.describe 'errapi' do
     expect(state.error?(location: 'bar.baz')).to be(true)
     expect(state.error?(location: 'corge.grault')).to be(true)
   end
+
+  it "should conditionally execute validations" do
+
+    h = {
+      foo: 'bar',
+      bar: {}
+    }
+
+    validations = Errapi::Validations.new do
+      validates :baz, presence: { if: :baz }
+      validates :qux, presence: { if: Proc.new{ |h| h[:foo] == 'baz' } }
+      validates :corge, presence: { unless: :bar }
+      validates :grault, presence: { unless: Proc.new{ |h| h[:foo] == 'bar' } }
+      validates :garply, presence: true, if: :baz
+      validates if: :baz do
+        validates :waldo, presence: true
+      end
+    end
+
+    validations.validate h, context
+
+    expect(state.error?).to be(false)
+    expect(state.errors).to be_empty
+
+    h = {
+      foo: 'baz',
+      baz: []
+    }
+
+    validations.validate h, context
+
+    expect(state.error?).to be(true)
+    expect(state.errors).to have(6).items
+    expect(state.error?(location: 'baz')).to be(true)
+    expect(state.error?(location: 'qux')).to be(true)
+    expect(state.error?(location: 'corge')).to be(true)
+    expect(state.error?(location: 'grault')).to be(true)
+    expect(state.error?(location: 'garply')).to be(true)
+    expect(state.error?(location: 'waldo')).to be(true)
+  end
 end

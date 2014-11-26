@@ -15,9 +15,9 @@ module Errapi
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
       options[:each] = args.shift
-
       args << options
-      register_validations *args, &block
+
+      validates *args, &block
     end
 
     def validate value, context, options = {}
@@ -30,8 +30,13 @@ module Errapi
           values = extract validation[:each], value
           next unless values.kind_of? Array
 
-          context_options = {}
-          context_options[:relative_location] = { type: :property, value: validation[:each] } unless validation[:each].respond_to?(:call)
+          context_options = if validation[:each_with]
+            validation[:each_with]
+          elsif !validation[:each].respond_to?(:call)
+            { relative_location: { type: :property, value: validation[:each] } }
+          else
+            {}
+          end
 
           context.with context_options do
             values.each.with_index do |value,i|
@@ -51,8 +56,8 @@ module Errapi
     def validator config, validation
       if validation[:validator]
         config.validators[validation[:validator]].new
-      elsif validation[:with]
-        validation[:with]
+      elsif validation[:using]
+        validation[:using]
       end
     end
 
@@ -61,8 +66,13 @@ module Errapi
       target = validation[:target]
       validator = validator config, validation
 
-      context_options = {}
-      context_options[:relative_location] = target unless target.respond_to?(:call)
+      context_options = if validation[:with]
+        validation[:with]
+      elsif !target.respond_to?(:call)
+        { relative_location: target }
+      else
+        {}
+      end
 
       context.with context_options do
         validator.validate extract(target, value), context, validation
@@ -86,27 +96,30 @@ module Errapi
     def register_validations *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
-      each_options = options[:each] ? { each: options.delete(:each) } : {}
+      validation_options = {}
+      validation_options[:each] = options.delete :each if options[:each]
+      validation_options[:each_with] = options.delete :each_with if options[:each_with]
+      validation_options[:with] = options.delete :with if options[:with]
 
-      custom_validator = if options[:with]
-        custom_validator = options.delete :with
-      elsif block
-        custom_validator = Errapi::Validations.new(&block)
-      end
+      custom_validators = []
+      custom_validators << options.delete(:using) if options[:using]
+      custom_validators << Errapi::Validations.new(&block) if block
 
       # TODO: fail if there are no validations declared
       args = [ nil ] if args.empty?
 
       args.each do |target|
 
-        if custom_validator
-          @validations << { with: custom_validator, target: target }
+        unless custom_validators.empty?
+          custom_validators.each do |custom_validator|
+            @validations << { using: custom_validator, target: target }.merge(validation_options)
+          end
         end
 
         options.each_pair do |validator,validator_options|
           next unless validator_options
           validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
-          @validations << validator_options.merge(validator: validator, target: target).merge(each_options)
+          @validations << validator_options.merge(validator: validator, target: target).merge(validation_options)
         end
       end
     end

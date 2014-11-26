@@ -66,7 +66,9 @@ RSpec.describe 'errapi' do
       baz: [
         { a: 'b' },
         { a: 'c' },
-        { a: nil }
+        { a: nil },
+        { a: 'd' },
+        {}
       ]
     }
 
@@ -77,12 +79,16 @@ RSpec.describe 'errapi' do
     validations = Errapi::Validations.new do
 
       validates :foo, presence: true
-      validates :bar, with: bar_validations
+      validates :bar, using: bar_validations
       validates :qux, presence: true
       validates_each :baz, :a, presence: true
 
       validates :bar do
         validates :baz, presence: true
+      end
+
+      validates :bar, with: { location: 'corge' } do
+        validates :qux, presence: true, with: { relative_location: 'grault' }
       end
     end
 
@@ -90,10 +96,12 @@ RSpec.describe 'errapi' do
 
     expect(state.error?).to be(true)
     expect(state.error?(message: /cannot be null or empty/)).to be(true)
-    expect(state.errors).to have(4).items
+    expect(state.errors).to have(6).items
     expect(state.error?(location: 'bar.foo')).to be(true)
     expect(state.error?(location: 'qux')).to be(true)
     expect(state.error?(location: 'baz.2.a')).to be(true)
+    expect(state.error?(location: 'baz.4.a')).to be(true)
     expect(state.error?(location: 'bar.baz')).to be(true)
+    expect(state.error?(location: 'corge.grault')).to be(true)
   end
 end

@@ -47,7 +47,7 @@ RSpec.describe 'errapi' do
 
       errapi :with_age do
         validates :name, presence: true
-        validates :age, presence: true
+        validates Proc.new{ |o| o.age }, presence: true, with: { location: 'age' }
       end
     end
 

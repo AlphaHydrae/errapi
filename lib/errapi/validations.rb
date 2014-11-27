@@ -140,6 +140,8 @@ module Errapi
 
       args.each do |target|
 
+        target = nil if target == self
+
         unless custom_validators.empty?
           custom_validators.each do |custom_validator|
             @validations << { using: custom_validator, target: target, conditions: conditions.dup }.merge(validation_options)

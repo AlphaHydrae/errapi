@@ -39,23 +39,36 @@ RSpec.describe 'errapi' do
     klass = Class.new do
       include Errapi::Model
 
-      attr_accessor :name
+      attr_accessor :name, :age
 
       errapi do
         validates :name, presence: true
+      end
+
+      errapi :with_age do
+        validates :name, presence: true
+        validates :age, presence: true
       end
     end
 
     o = klass.new
     o.validate context
     expect(state.error?).to be(true)
-    expect(state.error?(message: /cannot be null or empty/)).to be(true)
+    expect(state.error?(location: 'name')).to be(true)
     expect(state.errors).to have(1).item
 
     state.clear
     o.name = 'foo'
     o.validate context
     expect(state.error?).to be(false)
+
+    state.clear
+    o.name = nil
+    o.validate :with_age, context
+    expect(state.error?).to be(true)
+    expect(state.error?(location: 'name')).to be(true)
+    expect(state.error?(location: 'age')).to be(true)
+    expect(state.errors).to have(2).items
   end
 
   it "should validate parsed JSON" do

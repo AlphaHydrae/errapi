@@ -105,7 +105,7 @@ RSpec.describe 'errapi' do
     expect(state.error?(location: 'corge.grault')).to be(true)
   end
 
-  it "should conditionally execute validations" do
+  it "should conditionally execute validations based on custom conditions" do
 
     h = {
       foo: 'bar',
@@ -143,5 +143,45 @@ RSpec.describe 'errapi' do
     expect(state.error?(location: 'grault')).to be(true)
     expect(state.error?(location: 'garply')).to be(true)
     expect(state.error?(location: 'waldo')).to be(true)
+  end
+
+  it "should conditionally execute validations based on previous errors" do
+
+    h = {
+      foo: 'bar',
+      bar: false,
+      qux: {}
+    }
+
+    validations = Errapi::Validations.new do
+      validates :foo, presence: true
+      validates :bar, presence: true, if_error: { location: 'foo' }
+      validates :baz, presence: { unless_error: { location: 'foo' } }
+      validates :qux do
+        validates :corge, presence: { unless_error: { location: 'foo' } }
+        validates :grault, presence: { if_error: { relative_location: 'corge' } }
+      end
+    end
+
+    validations.validate h, context
+
+    expect(state.error?).to be(true)
+    expect(state.errors).to have(3).item
+    expect(state.error?(location: 'baz')).to be(true)
+    expect(state.error?(location: 'qux.corge')).to be(true)
+    expect(state.error?(location: 'qux.grault')).to be(true)
+
+    h = {
+      foo: nil,
+      qux: {}
+    }
+
+    state.clear
+    validations.validate h, context
+
+    expect(state.error?).to be(true)
+    expect(state.errors).to have(2).items
+    expect(state.error?(location: 'foo')).to be(true)
+    expect(state.error?(location: 'bar')).to be(true)
   end
 end

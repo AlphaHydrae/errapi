@@ -22,6 +22,12 @@ module Errapi
       self
     end
 
+    def error? criteria = {}
+      criteria[:location] = actual_location(criteria) if %i(location relative_location).any?{ |criterion| criteria.key? criterion }
+      criteria.delete :relative_location
+      @state.error? criteria
+    end
+
     def with options = {}, &block
 
       if options.empty?

@@ -63,7 +63,7 @@ module Errapi
 
     def perform_validation value, validation, context, config
 
-      return if validation[:conditions].any?{ |condition| !evaluate_condition(value, condition) }
+      return if validation[:conditions].any?{ |condition| !evaluate_condition(condition, value, context) }
 
       target = validation[:target]
       validator = validator config, validation
@@ -81,18 +81,27 @@ module Errapi
       end
     end
 
-    def evaluate_condition value, condition
+    def evaluate_condition condition, value, context
 
-      conditional, condition_value = if condition.key? :if
-        [ lambda{ |x| !!x }, condition[:if] ]
+      conditional, condition_type, predicate = if condition.key? :if
+        [ lambda{ |x| !!x }, :custom, condition[:if] ]
       elsif condition.key? :unless
-        [ lambda{ |x| !x }, condition[:unless] ]
+        [ lambda{ |x| !x }, :custom, condition[:unless] ]
+      elsif condition.key? :if_error
+        [ lambda{ |x| !!x }, :error, condition[:if_error] ]
+      elsif condition.key? :unless_error
+        [ lambda{ |x| !x }, :error, condition[:unless_error] ]
       end
 
-      result = if condition_value.kind_of? Symbol
-        value.kind_of?(Hash) ? value[condition_value] : value.send(condition_value)
-      elsif condition_value.respond_to? :call
-        condition_value.call value
+      result = case condition_type
+      when :custom
+        if predicate.kind_of? Symbol
+          value.respond_to?(:[]) ? value[predicate] : value.send(predicate)
+        elsif predicate.respond_to? :call
+          predicate.call value
+        end
+      when :error
+        context.error? predicate
       end
 
       conditional.call result
@@ -151,6 +160,8 @@ module Errapi
       [].tap do |conditions|
         conditions << { if: options.delete(:if) } if options[:if]
         conditions << { unless: options.delete(:unless) } if options[:unless]
+        conditions << { if_error: options.delete(:if_error) } if options[:if_error]
+        conditions << { unless_error: options.delete(:unless_error) } if options[:unless_error]
       end
     end
   end

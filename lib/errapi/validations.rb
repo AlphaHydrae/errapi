@@ -25,11 +25,7 @@ module Errapi
       config = options.delete(:config) || Errapi.config
 
       @validations.each do |validation|
-        puts "current location = #{context.current_location}"
         context.with validation do
-          puts "current location = #{context.current_location}"
-
-          return if validation[:conditions].any?{ |condition| !evaluate_condition(condition, context) }
 
           # TODO: store validation options separately to override
           validator_options = validation.dup
@@ -54,41 +50,13 @@ module Errapi
       end
     end
 
-    def evaluate_condition condition, context
-
-      value = context.current_value
-
-      conditional, condition_type, predicate = if condition.key? :if
-        [ lambda{ |x| !!x }, :custom, condition[:if] ]
-      elsif condition.key? :unless
-        [ lambda{ |x| !x }, :custom, condition[:unless] ]
-      elsif condition.key? :if_error
-        [ lambda{ |x| !!x }, :error, condition[:if_error] ]
-      elsif condition.key? :unless_error
-        [ lambda{ |x| !x }, :error, condition[:unless_error] ]
-      end
-
-      result = case condition_type
-      when :custom
-        if predicate.kind_of? Symbol
-          value.respond_to?(:[]) ? value[predicate] : value.send(predicate)
-        elsif predicate.respond_to? :call
-          predicate.call value
-        end
-      when :error
-        context.error? predicate
-      end
-
-      conditional.call result
-    end
-
     def register_validations *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
       validation_options = {}
       validation_options[:each] = options.delete :each if options[:each]
       validation_options[:each_with] = options.delete :each_with if options[:each_with]
-      validation_options.merge! options.delete(:with) if options[:with]
+      validation_options.merge! options.delete(:with_context) if options[:with_context]
 
       custom_validators = []
       custom_validators << options.delete(:using) if options[:using]

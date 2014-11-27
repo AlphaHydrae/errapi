@@ -39,6 +39,10 @@ module Errapi
       end
 
       options = options.dup
+
+      conditions = options[:conditions] || []
+      return if conditions.any?{ |condition| !evaluate_condition(condition) }
+
       original_properties = current_properties
 
       if options[:each]
@@ -150,6 +154,34 @@ module Errapi
 
     def location_to_string location
       location.kind_of?(Hash) && location.key?(:value) ? location[:value].to_s : location.to_s
+    end
+
+    def evaluate_condition condition
+
+      value = @current_value
+
+      conditional, condition_type, predicate = if condition.key? :if
+        [ lambda{ |x| !!x }, :custom, condition[:if] ]
+      elsif condition.key? :unless
+        [ lambda{ |x| !x }, :custom, condition[:unless] ]
+      elsif condition.key? :if_error
+        [ lambda{ |x| !!x }, :error, condition[:if_error] ]
+      elsif condition.key? :unless_error
+        [ lambda{ |x| !x }, :error, condition[:unless_error] ]
+      end
+
+      result = case condition_type
+      when :custom
+        if predicate.kind_of? Symbol
+          value.respond_to?(:[]) ? value[predicate] : value.send(predicate)
+        elsif predicate.respond_to? :call
+          predicate.call value, self
+        end
+      when :error
+        error? predicate
+      end
+
+      conditional.call result
     end
   end
 end

@@ -105,7 +105,7 @@ RSpec.describe 'errapi' do
       end
     end
 
-    validations.validate h, context
+    validations.validate context.with(value: h)
 
     expect(state.error?).to be(true)
     expect(state.error?(message: /cannot be null or empty/)).to be(true)
@@ -136,7 +136,7 @@ RSpec.describe 'errapi' do
       end
     end
 
-    validations.validate h, context
+    validations.validate context.with(value: h)
 
     expect(state.error?).to be(false)
     expect(state.errors).to be_empty
@@ -146,7 +146,7 @@ RSpec.describe 'errapi' do
       baz: []
     }
 
-    validations.validate h, context
+    validations.validate context.with(value: h)
 
     expect(state.error?).to be(true)
     expect(state.errors).to have(6).items
@@ -176,7 +176,7 @@ RSpec.describe 'errapi' do
       end
     end
 
-    validations.validate h, context
+    validations.validate context.with(value: h)
 
     expect(state.error?).to be(true)
     expect(state.errors).to have(3).item
@@ -190,7 +190,7 @@ RSpec.describe 'errapi' do
     }
 
     state.clear
-    validations.validate h, context
+    validations.validate context.with(value: h)
 
     expect(state.error?).to be(true)
     expect(state.errors).to have(2).items

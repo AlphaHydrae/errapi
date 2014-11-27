@@ -20,33 +20,26 @@ module Errapi
       validates *args, &block
     end
 
-    def validate value, context, options = {}
+    def validate context, options = {}
 
       config = options.delete(:config) || Errapi.config
 
       @validations.each do |validation|
-        if validation[:each]
+        puts "current location = #{context.current_location}"
+        context.with validation do
+          puts "current location = #{context.current_location}"
 
-          values = extract validation[:each], value
-          next unless values.kind_of? Array
+          return if validation[:conditions].any?{ |condition| !evaluate_condition(condition, context) }
 
-          context_options = if validation[:each_with]
-            validation[:each_with]
-          elsif !validation[:each].respond_to?(:call)
-            { relative_location: { type: :property, value: validation[:each] } }
-          else
-            {}
-          end
+          # TODO: store validation options separately to override
+          validator_options = validation.dup
+          validator_options.delete :value
+          validator_options.delete :previous_value
+          validator_options.delete :type
+          validator_options.delete :location
+          validator_options.delete :relative_location
 
-          context.with context_options do
-            values.each.with_index do |value,i|
-              context.with relative_location: { type: :array_index, value: i } do
-                perform_validation value, validation, context, config
-              end
-            end
-          end
-        else
-          perform_validation value, validation, context, config
+          validator(config, validation).validate context, validator_options
         end
       end
     end
@@ -61,27 +54,9 @@ module Errapi
       end
     end
 
-    def perform_validation value, validation, context, config
+    def evaluate_condition condition, context
 
-      return if validation[:conditions].any?{ |condition| !evaluate_condition(condition, value, context) }
-
-      target = validation[:target]
-      validator = validator config, validation
-
-      context_options = if validation[:with]
-        validation[:with]
-      elsif !target.respond_to?(:call)
-        { relative_location: target }
-      else
-        {}
-      end
-
-      context.with context_options do
-        validator.validate extract(target, value), context, validation
-      end
-    end
-
-    def evaluate_condition condition, value, context
+      value = context.current_value
 
       conditional, condition_type, predicate = if condition.key? :if
         [ lambda{ |x| !!x }, :custom, condition[:if] ]
@@ -107,27 +82,13 @@ module Errapi
       conditional.call result
     end
 
-    def extract target, value
-      if target.respond_to? :call
-        target.call value
-      elsif value.respond_to? :[]
-        value[target]
-      elsif target.nil?
-        value
-      elsif value.respond_to?(target)
-        value.send target
-      else
-        nil # TODO: use singleton object to identify when extraction failed
-      end
-    end
-
     def register_validations *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
       validation_options = {}
       validation_options[:each] = options.delete :each if options[:each]
       validation_options[:each_with] = options.delete :each_with if options[:each_with]
-      validation_options[:with] = options.delete :with if options[:with]
+      validation_options.merge! options.delete(:with) if options[:with]
 
       custom_validators = []
       custom_validators << options.delete(:using) if options[:using]

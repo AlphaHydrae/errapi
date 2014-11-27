@@ -172,10 +172,12 @@ module Errapi
 
       result = case condition_type
       when :custom
-        if predicate.kind_of? Symbol
+        if predicate.kind_of?(Symbol) || predicate.kind_of?(String)
           value.respond_to?(:[]) ? value[predicate] : value.send(predicate)
         elsif predicate.respond_to? :call
           predicate.call value, self
+        else
+          predicate
         end
       when :error
         error? predicate

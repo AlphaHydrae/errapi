@@ -25,6 +25,9 @@ module Errapi
       config = options.delete(:config) || Errapi.config
 
       @validations.each do |validation|
+
+        next if validation[:conditions].any?{ |condition| !evaluate_condition(condition, context) }
+
         context.with validation do
 
           # TODO: store validation options separately to override
@@ -94,6 +97,36 @@ module Errapi
         conditions << { if_error: options.delete(:if_error) } if options[:if_error]
         conditions << { unless_error: options.delete(:unless_error) } if options[:unless_error]
       end
+    end
+
+    def evaluate_condition condition, context
+
+      value = context.current_value
+
+      conditional, condition_type, predicate = if condition.key? :if
+        [ lambda{ |x| !!x }, :custom, condition[:if] ]
+      elsif condition.key? :unless
+        [ lambda{ |x| !x }, :custom, condition[:unless] ]
+      elsif condition.key? :if_error
+        [ lambda{ |x| !!x }, :error, condition[:if_error] ]
+      elsif condition.key? :unless_error
+        [ lambda{ |x| !x }, :error, condition[:unless_error] ]
+      end
+
+      result = case condition_type
+      when :custom
+        if predicate.kind_of?(Symbol) || predicate.kind_of?(String)
+          value.respond_to?(:[]) ? value[predicate] : value.send(predicate)
+        elsif predicate.respond_to? :call
+          predicate.call value, self
+        else
+          predicate
+        end
+      when :error
+        context.error? predicate
+      end
+
+      conditional.call result
     end
   end
 end

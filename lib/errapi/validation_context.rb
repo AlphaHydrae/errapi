@@ -75,6 +75,10 @@ module Errapi
       self
     end
 
+    def extract_from_current_value target
+      extract target, @current_value
+    end
+
     private
 
     PROPERTIES = %i(current_value current_previous_value current_type current_location)

@@ -14,7 +14,9 @@ module Errapi
     def validates_each *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
-      options[:each] = args.shift
+      options[:with_context] ||= {}
+      options[:with_context][:each] = args.shift
+      options[:with_context][:each_with] = options.delete :each_with_context if options.key?(:each_with_context)
       args << options
 
       validates *args, &block
@@ -28,17 +30,10 @@ module Errapi
 
         next if validation[:conditions].any?{ |condition| !evaluate_condition(condition, context) }
 
-        context.with validation do
+        validation_options = validation.dup
 
-          # TODO: store validation options separately to override
-          validator_options = validation.dup
-          validator_options.delete :value
-          validator_options.delete :previous_value
-          validator_options.delete :type
-          validator_options.delete :location
-          validator_options.delete :relative_location
-
-          validator(config, validation).validate context, validator_options
+        context.with validation_options.delete(:with_context) do
+          validator(config, validation_options).validate context, validation_options
         end
       end
     end
@@ -56,10 +51,7 @@ module Errapi
     def register_validations *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
-      validation_options = {}
-      validation_options[:each] = options.delete :each if options[:each]
-      validation_options[:each_with] = options.delete :each_with if options[:each_with]
-      validation_options.merge! options.delete(:with_context) if options[:with_context]
+      context_options = options.delete(:with_context) || {}
 
       custom_validators = []
       custom_validators << options.delete(:using) if options[:using]
@@ -76,15 +68,18 @@ module Errapi
 
         unless custom_validators.empty?
           custom_validators.each do |custom_validator|
-            @validations << { using: custom_validator, target: target, conditions: conditions.dup }.merge(validation_options)
+            @validations << { using: custom_validator, conditions: conditions.dup, with_context: context_options.merge(target: target) }
           end
         end
 
         options.each_pair do |validator,validator_options|
           next unless validator_options
+
           validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
           validator_options[:conditions] = conditions + extract_conditions!(validator_options)
-          @validations << validator_options.merge(validator: validator, target: target).merge(validation_options)
+          validator_options[:with_context] = context_options.merge(validator_options[:with_context] || {}).merge(target: target)
+
+          @validations << validator_options.merge(validator: validator)
         end
       end
     end

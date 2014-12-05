@@ -10,7 +10,7 @@ module Errapi
 
     def set options = {}
 
-      %i(message code type location).each do |attr|
+      ATTRIBUTES.each do |attr|
         instance_variable_set "@#{attr}", options[attr]
       end
 
@@ -24,7 +24,17 @@ module Errapi
       string_matches?(:location, criteria)
     end
 
+    def to_json options = {}
+      ATTRIBUTES.inject({}) do |memo,attr|
+        value = instance_variable_get "@#{attr}"
+        memo[attr] = value unless value.nil?
+        memo
+      end
+    end
+
     private
+
+    ATTRIBUTES = %i(message code type location)
 
     def string_matches? attr, criteria
       return false unless criteria.key? attr

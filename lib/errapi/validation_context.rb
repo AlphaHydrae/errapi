@@ -7,9 +7,12 @@ module Errapi
     attr_accessor :current_type
     attr_accessor :current_location
 
-    def initialize state, options = {}
-      @state = state
+    def initialize *args
+
+      options = args.last.kind_of?(Hash) ? args.pop : {}
       set_properties! options
+
+      @state = args.shift || ValidationState.new
     end
 
     def add_error options = {}, &block

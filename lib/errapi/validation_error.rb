@@ -24,7 +24,7 @@ module Errapi
       string_matches?(:location, criteria)
     end
 
-    def to_json options = {}
+    def serializable_hash options = {}
       ATTRIBUTES.inject({}) do |memo,attr|
         value = instance_variable_get "@#{attr}"
         memo[attr] = value unless value.nil?

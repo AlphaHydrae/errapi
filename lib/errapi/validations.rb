@@ -36,6 +36,9 @@ module Errapi
           validator(config, validation_options).validate context, validation_options
         end
       end
+
+      # TODO: add config option to raise error by default
+      raise ValidationFailed.new(context.state) if options[:raise_error] && context.state.error?
     end
 
     private

@@ -1,27 +1,18 @@
 module Errapi
 
   class ValidationError
-    attr_accessor :message, :code, :type, :location
+    attr_accessor :message, :code, :location, :location_type
 
     def initialize options = {}
       set options
       yield self, options if block_given?
     end
 
-    def set options = {}
-
-      ATTRIBUTES.each do |attr|
-        instance_variable_set "@#{attr}", options[attr]
-      end
-
-      self
-    end
-
     def matches? criteria
       string_matches?(:message, criteria) ||
       string_matches?(:code, criteria) ||
-      string_matches?(:type, criteria) ||
-      string_matches?(:location, criteria)
+      string_matches?(:location, criteria) ||
+      string_matches?(:location_type, criteria)
     end
 
     def serializable_hash options = {}
@@ -34,7 +25,11 @@ module Errapi
 
     private
 
-    ATTRIBUTES = %i(message code type location)
+    ATTRIBUTES = %i(message code location location_type).freeze
+
+    def set options = {}
+      ATTRIBUTES.each{ |attr| instance_variable_set "@#{attr}", options[attr] if options.key? attr }
+    end
 
     def string_matches? attr, criteria
       return false unless criteria.key? attr

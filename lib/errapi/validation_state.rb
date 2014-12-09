@@ -8,13 +8,14 @@ module Errapi
     end
 
     def add_error options = {}, &block
-      @errors << ValidationError.new(options, &block)
-      self
+      ValidationError.new(options, &block).tap do |error|
+        @errors << error
+      end
     end
 
-    def error? criteria = {}
-      return !@errors.empty? if criteria.empty?
-      @errors.any?{ |err| err.matches? criteria }
+    def error? criteria = {}, &block
+      return !@errors.empty? if criteria.empty? && !block
+      @errors.any?{ |err| err.matches?(criteria) && (!block || block.call(err)) }
     end
 
     def valid?

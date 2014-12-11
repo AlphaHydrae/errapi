@@ -12,7 +12,11 @@ module Errapi
         context = args.shift
       end
 
-      self.class.errapi(name).validate context.with(options.merge(value: self)), options
+      validations = self.class.errapi name
+
+      context.with validations, value: self do
+        validations.validate context, options
+      end
     end
 
     def Model.included mod

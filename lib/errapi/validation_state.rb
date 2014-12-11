@@ -7,8 +7,9 @@ module Errapi
       @errors = []
     end
 
-    def add_error options = {}, &block
-      ValidationError.new(options, &block).tap do |error|
+    def add_error options = {}
+      ValidationError.new(options).tap do |error|
+        yield error, options if block_given?
         @errors << error
       end
     end

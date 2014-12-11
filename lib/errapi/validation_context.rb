@@ -1,65 +1,76 @@
+require 'ostruct'
+
 module Errapi
 
   class ValidationContext
-    attr_reader :state
-    attr_accessor :value
-    attr_accessor :location
-    attr_accessor :location_type
+    attr_reader :handlers
+    attr_reader :errors
 
-    def initialize *args
-
-      options = args.last.kind_of?(Hash) ? args.pop : {}
-      set_properties! options
-
-      # TODO: state should be required
-      @state = args.shift || ValidationState.new
+    def initialize
+      @errors = []
+      @handlers = []
     end
 
     def add_error options = {}, &block
 
-      context_options = {}
+      options = options.dup
 
-      if @location
-        context_options[:location] = @location
-        context_options[:location_type] = @location_type
+      @handlers.each do |handler|
+        handler.build_error_options options, self if handler.respond_to? :build_error_options
       end
 
-      @state.add_error options.merge(context_options), &block
-      self
-    end
+      error = ValidationError.new options
 
-    def error? criteria = {}
-      @state.error? criteria
-    end
-
-    def with options = {}, &block
-
-      if options.empty?
-        yield if block_given?
-        return self
+      @handlers.each do |handler|
+        handler.build_error error, self if handler.respond_to? :build_error
       end
 
-      original_properties = current_properties
-      set_properties! options
+      yield error if block_given?
+
+      @errors << error
+
+      error
+    end
+
+    def with *args
+
+      options = args.last.kind_of?(Hash) ? args.pop : {}
+
+      original_handlers = @handlers
+
+      unless args.empty?
+        original_handlers = @handlers.dup
+        @handlers += args
+      end
+
+      @handlers.each do |handler|
+        handler.build_context_options options, self
+      end
 
       if block_given?
         yield
-        set_properties! original_properties
+        @handlers = original_handlers
       end
 
       self
     end
 
-    private
-
-    PROPERTIES = %i(value location location_type)
-
-    def set_properties! properties = {}
-      PROPERTIES.each{ |p| instance_variable_set "@#{p}", properties[p] if properties.key? p }
+    def error? criteria = {}, &block
+      return !@errors.empty? if criteria.empty? && !block
+      @errors.any?{ |err| err.matches?(criteria) && (!block || block.call(err)) }
     end
 
-    def current_properties
-      PROPERTIES.inject({}){ |memo,p| memo[p] = instance_variable_get("@#{p}"); memo }
+    def valid?
+      !error?
+    end
+
+    def clear
+      @errors.clear
+      @data = OpenStruct.new
+    end
+
+    def value_set?
+      !!@value_set
     end
   end
 end

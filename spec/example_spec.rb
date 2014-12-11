@@ -2,36 +2,35 @@ require 'helper'
 
 RSpec.describe 'errapi' do
 
-  let(:state){ Errapi::ValidationState.new }
-  let(:context){ Errapi::ValidationContext.new state }
+  let(:context){ Errapi::ValidationContext.new }
 
   it "should collect and find errors" do
 
-    state.add_error message: 'foo'
-    state.add_error message: 'bar', code: 'auth.failed'
-    state.add_error{ |err| err.set message: 'baz', code: 'json.invalid' }
+    context.add_error message: 'foo'
+    context.add_error message: 'bar', code: 'auth.failed'
+    context.add_error{ |err| err.message = 'baz'; err.code = 'json.invalid' }
 
     %w(foo bar baz).each do |message|
-      expect(state.error?(message: message)).to be(true)
+      expect(context.error?(message: message)).to be(true)
     end
 
     [ /fo/, /ba/ ].each do |regexp|
-      expect(state.error?(message: regexp)).to be(true)
+      expect(context.error?(message: regexp)).to be(true)
     end
 
-    expect(state.error?(message: 'qux')).to be(false)
-    expect(state.error?(message: /qux/)).to be(false)
+    expect(context.error?(message: 'qux')).to be(false)
+    expect(context.error?(message: /qux/)).to be(false)
 
     %w(auth.failed json.invalid).each do |code|
-      expect(state.error?(code: code)).to be(true)
+      expect(context.error?(code: code)).to be(true)
     end
 
     [ /^auth\./, /invalid/ ].each do |regexp|
-      expect(state.error?(code: regexp)).to be(true)
+      expect(context.error?(code: regexp)).to be(true)
     end
 
-    expect(state.error?(code: 'broken')).to be(false)
-    expect(state.error?(code: /broke/)).to be(false)
+    expect(context.error?(code: 'broken')).to be(false)
+    expect(context.error?(code: /broke/)).to be(false)
   end
 
   it "should provide a model extension to validate objects" do
@@ -47,28 +46,28 @@ RSpec.describe 'errapi' do
 
       errapi :with_age do
         validates :name, presence: true
-        validates Proc.new{ |o| o.age }, presence: true, with_context: { location: 'age' }
+        validates Proc.new(&:age), presence: true, at: { location: 'age' }
       end
     end
 
     o = klass.new
     o.validate context
-    expect(state.error?).to be(true)
-    expect(state.error?(location: 'name')).to be(true)
-    expect(state.errors).to have(1).item
+    expect(context.error?).to be(true)
+    expect(context.error?(location: 'name')).to be(true)
+    expect(context.errors).to have(1).item
 
-    state.clear
+    context.clear
     o.name = 'foo'
     o.validate context
-    expect(state.error?).to be(false)
+    expect(context.error?).to be(false)
 
-    state.clear
+    context.clear
     o.name = nil
     o.validate :with_age, context
-    expect(state.error?).to be(true)
-    expect(state.error?(location: 'name')).to be(true)
-    expect(state.error?(location: 'age')).to be(true)
-    expect(state.errors).to have(2).items
+    expect(context.error?).to be(true)
+    expect(context.error?(location: 'name')).to be(true)
+    expect(context.error?(location: 'age')).to be(true)
+    expect(context.errors).to have(2).items
   end
 
   it "should validate parsed JSON" do

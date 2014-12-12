@@ -32,6 +32,21 @@ module Errapi
       error
     end
 
+    def data
+
+      current_data = OpenStruct.new
+
+      @handlers.each do |handler|
+        handler.build_current_data current_data, self
+      end
+
+      current_data
+    end
+
+    def validate_using validator, options = {}
+      validator.validate current_data, self, options
+    end
+
     def with *args
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
@@ -41,10 +56,6 @@ module Errapi
       unless args.empty?
         original_handlers = @handlers.dup
         @handlers += args
-      end
-
-      @handlers.each do |handler|
-        handler.build_context_options options, self
       end
 
       if block_given?

@@ -2,8 +2,8 @@ module Errapi::Validator
 
   class Presence
 
-    def validate context, options = {}
-      if value_blank? context.value
+    def validate value, context, options = {}
+      if value_blank? value
         context.add_error cause: :blank
       end
     end

@@ -3,12 +3,8 @@ module Errapi
   class Validations
 
     def initialize &block
-
       @validations = []
-
-      @current_data = nil
-      @current_location = nil
-
+      @current_options = {}
       instance_eval &block if block
     end
 
@@ -29,26 +25,35 @@ module Errapi
     end
 =end
 
-    def validate context, options = {}
+    def validate value, context, options = {}
 
       config = options.delete(:config) || Errapi.config
 
       @validations.each do |validation|
 
-        context_options = {}
+        context_options = validation[:context_options]
 
         target = validation[:target]
-        value = if target.respond_to? :call
-          context_options[:value] = target.call(context.value)
-        elsif context.value.kind_of?(Hash) && !target.nil?
-          context_options.merge! value: context.value[target], value_set: context.value.key?(target)
-        elsif !target.nil? && context.value.respond_to?(target)
-          context_options.merge! value: context.value.send(target)
+
+        context_options[:location] ||= target
+        context_options[:location] = actual_location context_options
+
+        context_options[:value_set] = true
+
+        current_value = if target.respond_to? :call
+          target.call value
+        elsif value.kind_of?(Hash) && !target.nil?
+          context_options[:value_set] = value.key? target
+          value[target]
+        elsif !target.nil? && value.respond_to?(target)
+          value.send target
+        elsif target.nil?
+          value
         end
 
-        context.with context_options do
+        with_options context_options do
           validator = validation[:validator] || config.validators[validation[:validator_name]].new
-          validator.validate context, validation[:validator_options]
+          validator.validate current_value, context, validation[:validator_options]
         end
 
         #next if validation[:conditions].any?{ |condition| !evaluate_condition(condition, context) }
@@ -65,19 +70,29 @@ module Errapi
     end
 
     def build_error error, context
-      error.location = @current_location
+      error.location = @current_options[:location].to_s
     end
 
-    def build_context_options options, context
-      if options.key? :value
-        context.value = options[:value]
-        context.value_set = options.fetch :value_set, true
-      elsif options.key? :value_set
-        context.value_set = options[:value_set]
-      end
+    def build_current_data data, context
+      data.value_set = !!@current_options[:value_set]
     end
 
     private
+
+    def with_options options = {}
+      original_options = @current_options
+      @current_options = @current_options.merge options
+      yield
+      @current_options = original_options
+    end
+
+    def actual_location options = {}
+      if options[:location]
+        @current_location ? "#{@current_location}.#{options[:location]}" : options[:location]
+      else
+        @current_location
+      end
+    end
 
     def validator config, validation
       if validation[:validator]
@@ -90,7 +105,7 @@ module Errapi
     def register_validations *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
-      #context_options = options.delete(:with_context) || {}
+      context_options = options.delete(:with) || {}
 
       custom_validators = []
       custom_validators << options.delete(:using) if options[:using]
@@ -117,9 +132,9 @@ module Errapi
 
           validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
           #validator_options[:conditions] = conditions + extract_conditions!(validator_options)
-          #validator_options[:with_context] = context_options.merge(validator_options[:with_context] || {}).merge(target: target)
+          validator_context_options = validator_options.delete(:with) || context_options
 
-          @validations << { validator_name: validator_name, validator_options: validator_options }.merge(target_options)
+          @validations << { validator_name: validator_name, validator_options: validator_options, context_options: validator_context_options }.merge(target_options)
         end
       end
     end

@@ -14,8 +14,8 @@ module Errapi
 
       validations = self.class.errapi name
 
-      context.with validations, value: self do
-        validations.validate context, options
+      context.with validations do
+        validations.validate self, context, options
       end
     end
 

@@ -99,22 +99,23 @@ RSpec.describe 'errapi' do
         validates :baz, presence: true
       end
 
-      validates :bar, with_context: { location: 'corge' } do
-        validates :qux, presence: true, with_context: { relative_location: 'grault' }
+      validates :bar, with: { location: 'corge' } do
+        validates :qux, presence: true, with: { relative_location: 'grault' }
       end
     end
 
-    validations.validate context.with(value: h)
+    context.with validations do
+      validations.validate h, context
+    end
 
-    expect(state.error?).to be(true)
-    expect(state.error?(message: /cannot be null or empty/)).to be(true)
-    expect(state.errors).to have(6).items
-    expect(state.error?(location: 'bar.foo')).to be(true)
-    expect(state.error?(location: 'qux')).to be(true)
-    expect(state.error?(location: 'baz.2.a')).to be(true)
-    expect(state.error?(location: 'baz.4.a')).to be(true)
-    expect(state.error?(location: 'bar.baz')).to be(true)
-    expect(state.error?(location: 'corge.grault')).to be(true)
+    expect(context.error?).to be(true)
+    expect(context.errors).to have(6).items
+    expect(context.error?(location: 'bar.foo')).to be(true)
+    expect(context.error?(location: 'qux')).to be(true)
+    expect(context.error?(location: 'baz.2.a')).to be(true)
+    expect(context.error?(location: 'baz.4.a')).to be(true)
+    expect(context.error?(location: 'bar.baz')).to be(true)
+    expect(context.error?(location: 'corge.grault')).to be(true)
   end
 
   it "should conditionally execute validations based on custom conditions" do

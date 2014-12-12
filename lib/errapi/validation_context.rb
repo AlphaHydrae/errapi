@@ -43,10 +43,6 @@ module Errapi
       current_data
     end
 
-    def validate_using validator, options = {}
-      validator.validate current_data, self, options
-    end
-
     def with *args
 
       options = args.last.kind_of?(Hash) ? args.pop : {}

@@ -104,12 +104,11 @@ RSpec.describe 'errapi' do
       end
     end
 
-    context.with validations do
-      validations.validate h, context
-    end
+    validations.validate h, context
 
     expect(context.error?).to be(true)
     expect(context.errors).to have(6).items
+    puts context.errors.inspect
     expect(context.error?(location: 'bar.foo')).to be(true)
     expect(context.error?(location: 'qux')).to be(true)
     expect(context.error?(location: 'baz.2.a')).to be(true)

@@ -49,9 +49,18 @@ module Errapi
 
       original_handlers = @handlers
 
-      unless args.empty?
+      unless args.empty? && options.empty?
         original_handlers = @handlers.dup
+
         @handlers += args
+
+        if options[:replace]
+          options[:replace].each_pair do |original,replacement|
+            @handlers.each.with_index do |handler,i|
+              @handlers[i] = replacement if handler == original
+            end
+          end
+        end
       end
 
       if block_given?
@@ -74,10 +83,6 @@ module Errapi
     def clear
       @errors.clear
       @data = OpenStruct.new
-    end
-
-    def value_set?
-      !!@value_set
     end
   end
 end

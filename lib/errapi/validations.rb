@@ -27,51 +27,78 @@ module Errapi
 
       config = options.delete(:config) || Errapi.config
 
-      @validations.each do |validation|
+      context.with self do
+        with_options options do
 
-        context_options = validation[:context_options]
-        each = context_options.delete :each
-        each_with = context_options.delete(:each_with) || {}
+          @validations.each do |validation|
 
-        values = if each
-          extract value, each
-        else
-          [ value ]
-        end
+            context_options = validation[:context_options]
+            each = context_options.delete :each
+            each_with = context_options.delete(:each_with) || {}
 
-        values.each.with_index do |value,i|
+            values = if each
+              extract(value, each)[:value]
+            else
+              [ value ]
+            end
 
-          target = validation[:target]
+            each_options = {}
+            each_options[:location] = actual_location relative_location: each if each
 
-          context_options[:location] = actual_location extract_location(context_options) || { relative_location: target }
+            with_options each_options do
 
-          context_options[:value_set] = true
+              values.each.with_index do |value,i|
 
-          current_value = if target.respond_to? :call
-            target.call value
-          elsif value.kind_of?(Hash) && !target.nil?
-            context_options[:value_set] = value.key? target
-            value[target]
-          elsif !target.nil? && value.respond_to?(target)
-            value.send target
-          elsif target.nil?
-            value
+                iteration_options = {}
+                iteration_options = { location: actual_location(relative_location: i), value_set: true } if each
+
+                with_options iteration_options do
+
+                  target = validation[:target]
+
+                  context_options[:location] = actual_location(extract_location(context_options) || { relative_location: target })
+
+                  context_options[:value_set] = true
+
+                  current_value = if target.respond_to? :call
+                    target.call value
+                  elsif value.kind_of?(Hash) && !target.nil?
+                    context_options[:value_set] = value.key? target
+                    value[target]
+                  elsif !target.nil? && value.respond_to?(target)
+                    value.send target
+                  elsif target.nil?
+                    value
+                  end
+
+                  validator = validation[:validator] || config.validators[validation[:validator_name]].new
+                  context_options[:validator_name] = validation[:validator_name] unless validation[:validator]
+                  context_options[:validator_options] = validation[:validator_options]
+
+                  with_options context_options do
+
+                    handler_options = {}
+                    handler_options[:replace] = { self => validator } if validator.kind_of? Validations
+
+                    context.with handler_options do
+                      validator_options = validation[:validator_options]
+                      validator_options[:location] = @current_options[:location] if @current_options[:location]
+                      validator_options[:value_set] = @current_options[:value_set] if @current_options.key? :value_set
+
+                      validator.validate current_value, context, validator_options
+                    end
+                  end
+                end
+              end
+            end
+
+            #next if validation[:conditions].any?{ |condition| !evaluate_condition(condition, context) }
           end
-
-          validator = validation[:validator] || config.validators[validation[:validator_name]].new
-          context_options[:validator_name] = validation[:validator_name] unless validation[:validator]
-          context_options[:validator_options] = validation[:validator_options]
-
-          with_options context_options do
-            validator.validate current_value, context, validation[:validator_options]
-          end
         end
-
-        #next if validation[:conditions].any?{ |condition| !evaluate_condition(condition, context) }
       end
 
       # TODO: add config option to raise error by default
-      raise ValidationFailed.new(context.state) if options[:raise_error] && context.state.error?
+      raise ValidationFailed.new(context) if options[:raise_error] && context.error?
     end
 
     def build_error error, context
@@ -108,8 +135,6 @@ module Errapi
         { location: options[:location] }
       elsif options[:relative_location]
         { relative_location: options[:relative_location] }
-      else
-        nil
       end
     end
 
@@ -117,9 +142,9 @@ module Errapi
       if options[:location]
         options[:location]
       elsif options[:relative_location]
-        @current_location ? "#{@current_location}.#{options[:relative_location]}" : options[:relative_location]
+        @current_options[:location] ? "#{@current_options[:location]}.#{options[:relative_location]}" : options[:relative_location]
       else
-        @current_location
+        @current_options[:location]
       end
     end
 

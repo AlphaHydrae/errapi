@@ -13,10 +13,7 @@ module Errapi
       end
 
       validations = self.class.errapi name
-
-      context.with validations do
-        validations.validate self, context, options
-      end
+      validations.validate self, context, options
     end
 
     def Model.included mod

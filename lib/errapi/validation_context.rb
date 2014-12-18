@@ -13,8 +13,8 @@ class Errapi::ValidationContext
 
   def add_error options = {}, &block
 
-    options = build :build_error_options, options.dup
-    error = build :build_error, Errapi::ValidationError.new(options)
+    options = plug :build_error_options, options.dup
+    error = plug :build_error, Errapi::ValidationError.new(options)
 
     yield error if block_given?
 
@@ -51,7 +51,7 @@ class Errapi::ValidationContext
   end
 
   def errors? criteria = {}, &block
-    build :build_error_criteria, criteria
+    plug :build_error_criteria, criteria
     return !@errors.empty? if criteria.empty? && !block
     @errors.any?{ |err| err.matches?(criteria) && (!block || block.call(err)) }
   end
@@ -67,7 +67,7 @@ class Errapi::ValidationContext
 
   private
 
-  def build operation, value
+  def plug operation, value
 
     @plugins.each do |plugin|
       plugin.send operation, value, self if plugin.respond_to? operation

@@ -2,7 +2,7 @@ require 'helper'
 
 RSpec.describe 'errapi' do
 
-  let(:context){ Errapi::ValidationContext.new }
+  let(:context){ Errapi.config.new_context }
 
   it "should collect and find errors" do
 
@@ -11,26 +11,26 @@ RSpec.describe 'errapi' do
     context.add_error{ |err| err.message = 'baz'; err.code = 'json.invalid' }
 
     %w(foo bar baz).each do |message|
-      expect(context.error?(message: message)).to be(true)
+      expect(context.errors?(message: message)).to be(true)
     end
 
     [ /fo/, /ba/ ].each do |regexp|
-      expect(context.error?(message: regexp)).to be(true)
+      expect(context.errors?(message: regexp)).to be(true)
     end
 
-    expect(context.error?(message: 'qux')).to be(false)
-    expect(context.error?(message: /qux/)).to be(false)
+    expect(context.errors?(message: 'qux')).to be(false)
+    expect(context.errors?(message: /qux/)).to be(false)
 
     %w(auth.failed json.invalid).each do |code|
-      expect(context.error?(code: code)).to be(true)
+      expect(context.errors?(code: code)).to be(true)
     end
 
     [ /^auth\./, /invalid/ ].each do |regexp|
-      expect(context.error?(code: regexp)).to be(true)
+      expect(context.errors?(code: regexp)).to be(true)
     end
 
-    expect(context.error?(code: 'broken')).to be(false)
-    expect(context.error?(code: /broke/)).to be(false)
+    expect(context.errors?(code: 'broken')).to be(false)
+    expect(context.errors?(code: /broke/)).to be(false)
   end
 
   it "should provide a model extension to validate objects" do
@@ -52,21 +52,21 @@ RSpec.describe 'errapi' do
 
     o = klass.new
     o.validate context
-    expect(context.error?).to be(true)
-    expect(context.error?(location: 'name')).to be(true)
+    expect(context.errors?).to be(true)
+    expect(context.errors?(location: 'name')).to be(true)
     expect(context.errors).to have(1).item
 
     context.clear
     o.name = 'foo'
     o.validate context
-    expect(context.error?).to be(false)
+    expect(context.errors?).to be(false)
 
     context.clear
     o.name = nil
     o.validate :with_age, context
-    expect(context.error?).to be(true)
-    expect(context.error?(location: 'name')).to be(true)
-    expect(context.error?(location: 'age')).to be(true)
+    expect(context.errors?).to be(true)
+    expect(context.errors?(location: 'name')).to be(true)
+    expect(context.errors?(location: 'age')).to be(true)
     expect(context.errors).to have(2).items
   end
 
@@ -84,11 +84,11 @@ RSpec.describe 'errapi' do
       ]
     }
 
-    bar_validations = Errapi::Validations.new do
+    bar_validations = Errapi::ObjectValidations.new do
       validates :foo, presence: true
     end
 
-    validations = Errapi::Validations.new do
+    validations = Errapi::ObjectValidations.new do
 
       validates :foo, presence: true
       validates :bar, using: bar_validations
@@ -106,14 +106,14 @@ RSpec.describe 'errapi' do
 
     validations.validate h, context
 
-    expect(context.error?).to be(true)
+    expect(context.errors?).to be(true)
     expect(context.errors).to have(6).items
-    expect(context.error?(location: 'bar.foo')).to be(true)
-    expect(context.error?(location: 'qux')).to be(true)
-    expect(context.error?(location: 'baz.2.a')).to be(true)
-    expect(context.error?(location: 'baz.4.a')).to be(true)
-    expect(context.error?(location: 'bar.baz')).to be(true)
-    expect(context.error?(location: 'corge.grault')).to be(true)
+    expect(context.errors?(location: 'bar.foo')).to be(true)
+    expect(context.errors?(location: 'qux')).to be(true)
+    expect(context.errors?(location: 'baz.2.a')).to be(true)
+    expect(context.errors?(location: 'baz.4.a')).to be(true)
+    expect(context.errors?(location: 'bar.baz')).to be(true)
+    expect(context.errors?(location: 'corge.grault')).to be(true)
   end
 
   it "should conditionally execute validations based on custom conditions" do
@@ -123,7 +123,7 @@ RSpec.describe 'errapi' do
       bar: {}
     }
 
-    validations = Errapi::Validations.new do
+    validations = Errapi::ObjectValidations.new do
       validates :baz, presence: { if: :baz }
       validates :qux, presence: { if: Proc.new{ |h| h[:foo] == 'baz' } }
       validates :corge, presence: { unless: :bar }
@@ -136,7 +136,7 @@ RSpec.describe 'errapi' do
 
     validations.validate h, context
 
-    expect(context.error?).to be(false)
+    expect(context.errors?).to be(false)
     expect(context.errors).to be_empty
 
     h = {
@@ -146,14 +146,14 @@ RSpec.describe 'errapi' do
 
     validations.validate h, context
 
-    expect(context.error?).to be(true)
+    expect(context.errors?).to be(true)
     expect(context.errors).to have(6).items
-    expect(context.error?(location: 'baz')).to be(true)
-    expect(context.error?(location: 'qux')).to be(true)
-    expect(context.error?(location: 'corge')).to be(true)
-    expect(context.error?(location: 'grault')).to be(true)
-    expect(context.error?(location: 'garply')).to be(true)
-    expect(context.error?(location: 'waldo')).to be(true)
+    expect(context.errors?(location: 'baz')).to be(true)
+    expect(context.errors?(location: 'qux')).to be(true)
+    expect(context.errors?(location: 'corge')).to be(true)
+    expect(context.errors?(location: 'grault')).to be(true)
+    expect(context.errors?(location: 'garply')).to be(true)
+    expect(context.errors?(location: 'waldo')).to be(true)
   end
 
   it "should conditionally execute validations based on previous errors" do
@@ -164,7 +164,7 @@ RSpec.describe 'errapi' do
       qux: {}
     }
 
-    validations = Errapi::Validations.new do
+    validations = Errapi::ObjectValidations.new do
       validates :foo, presence: true
       validates :bar, presence: true, if_error: { location: 'foo' }
       validates :baz, presence: { unless_error: { location: 'foo' } }
@@ -176,11 +176,11 @@ RSpec.describe 'errapi' do
 
     validations.validate h, context
 
-    expect(context.error?).to be(true)
+    expect(context.errors?).to be(true)
     expect(context.errors).to have(3).item
-    expect(context.error?(location: 'baz')).to be(true)
-    expect(context.error?(location: 'qux.corge')).to be(true)
-    expect(context.error?(location: 'qux.grault')).to be(true)
+    expect(context.errors?(location: 'baz')).to be(true)
+    expect(context.errors?(location: 'qux.corge')).to be(true)
+    expect(context.errors?(location: 'qux.grault')).to be(true)
 
     h = {
       foo: nil,
@@ -190,9 +190,9 @@ RSpec.describe 'errapi' do
     context.clear
     validations.validate h, context
 
-    expect(context.error?).to be(true)
+    expect(context.errors?).to be(true)
     expect(context.errors).to have(2).items
-    expect(context.error?(location: 'foo')).to be(true)
-    expect(context.error?(location: 'bar')).to be(true)
+    expect(context.errors?(location: 'foo')).to be(true)
+    expect(context.errors?(location: 'bar')).to be(true)
   end
 end

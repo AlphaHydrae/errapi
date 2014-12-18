@@ -12,7 +12,9 @@ module Errapi
 
   def self.default_config
     Configuration.new.tap do |config|
-      config.validators[:presence] = Errapi::Validator::Presence
+      config.plugins << Errapi::Plugins::ErrorCodes.new
+      config.register_validator :length, Errapi::Validators::Length.new
+      config.register_validator :presence, Errapi::Validators::Presence.new
     end
   end
 end

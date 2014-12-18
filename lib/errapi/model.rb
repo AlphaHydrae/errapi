@@ -1,5 +1,4 @@
 module Errapi
-
   module Model
 
     def validate *args
@@ -24,7 +23,7 @@ module Errapi
 
       def errapi name = nil, &block
         @errapi_validations ||= {}
-        @errapi_validations[name || :default] ||= Validations.new(&block)
+        @errapi_validations[name || :default] ||= ObjectValidations.new(&block)
       end
     end
   end

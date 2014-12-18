@@ -37,9 +37,15 @@ module Errapi
             each_with = context_options.delete(:each_with) || {}
 
             values = if each
-              extract(value, each)[:value]
+              extract(value, !!options[:value_set], each)[:value] || []
             else
               [ value ]
+            end
+
+            values_set = if each
+              values.collect{ |v| true }
+            else
+              [ !!options[:value_set] ]
             end
 
             each_options = {}
@@ -49,33 +55,27 @@ module Errapi
 
               values.each.with_index do |value,i|
 
+                next if validation[:conditions].any?{ |condition| !evaluate_condition(condition, value, context) }
+
                 iteration_options = {}
-                iteration_options = { location: actual_location(relative_location: i), value_set: true } if each
+                iteration_options = { location: actual_location(relative_location: i), value_set: values_set[i] } if each
 
                 with_options iteration_options do
 
                   target = validation[:target]
 
-                  context_options[:location] = actual_location(extract_location(context_options) || { relative_location: target })
+                  value_context_options = context_options.dup
+                  value_context_options[:location] = actual_location(extract_location(value_context_options) || { relative_location: target })
 
-                  context_options[:value_set] = true
-
-                  current_value = if target.respond_to? :call
-                    target.call value
-                  elsif value.kind_of?(Hash) && !target.nil?
-                    context_options[:value_set] = value.key? target
-                    value[target]
-                  elsif !target.nil? && value.respond_to?(target)
-                    value.send target
-                  elsif target.nil?
-                    value
-                  end
+                  value_data = extract value, values_set[i], target
+                  current_value = value_data[:value]
+                  value_context_options[:value_set] = value_data[:value_set]
 
                   validator = validation[:validator] || config.validators[validation[:validator_name]].new
-                  context_options[:validator_name] = validation[:validator_name] unless validation[:validator]
-                  context_options[:validator_options] = validation[:validator_options]
+                  value_context_options[:validator_name] = validation[:validator_name] if validation[:validator_name]
+                  value_context_options[:validator_options] = validation[:validator_options]
 
-                  with_options context_options do
+                  with_options value_context_options do
 
                     handler_options = {}
                     handler_options[:replace] = { self => validator } if validator.kind_of? Validations
@@ -91,8 +91,6 @@ module Errapi
                 end
               end
             end
-
-            #next if validation[:conditions].any?{ |condition| !evaluate_condition(condition, context) }
           end
         end
       end
@@ -109,6 +107,11 @@ module Errapi
       data.value_set = !!@current_options[:value_set]
     end
 
+    def build_error_criteria criteria, context
+      criteria[:location] = actual_location criteria if %i(location relative_location).any?{ |k| criteria.key? k }
+      criteria.delete :relative_location
+    end
+
     private
 
     def with_options options = {}
@@ -118,15 +121,17 @@ module Errapi
       @current_options = original_options
     end
 
-    def extract value, target
-      if target.respond_to? :call
-        { value: target.call(value) }
-      elsif value.kind_of?(Hash) && !target.nil?
+    def extract value, value_set, target
+      if target.nil?
+        { value: value, value_set: value_set }
+      elsif target.respond_to? :call
+        { value: target.call(value), value_set: value_set }
+      elsif value.kind_of? Hash
         { value: value[target], value_set: value.key?(target) }
-      elsif !target.nil? && value.respond_to?(target)
-        { value: value.send(target) }
-      elsif target.nil?
-        { value: value }
+      elsif value.respond_to?(target)
+        { value: value.send(target), value_set: value_set }
+      else
+        { value_set: false }
       end
     end
 
@@ -148,14 +153,6 @@ module Errapi
       end
     end
 
-    def validator config, validation
-      if validation[:validator]
-        config.validators[validation[:validator]].new
-      elsif validation[:using]
-        validation[:using]
-      end
-    end
-
     def register_validations *args, &block
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
@@ -165,7 +162,7 @@ module Errapi
       custom_validators << options.delete(:using) if options[:using] # TODO: allow array
       custom_validators << Errapi::Validations.new(&block) if block
 
-      #conditions = extract_conditions! options
+      conditions = extract_conditions! options
 
       # TODO: fail if there are no validations declared
       args = [ nil ] if args.empty?
@@ -177,18 +174,31 @@ module Errapi
 
         unless custom_validators.empty?
           custom_validators.each do |custom_validator|
-            @validations << { validator: custom_validator, validator_options: {}, context_options: context_options }.merge(target_options)
+            @validations << {
+              validator: custom_validator,
+              validator_options: {},
+              context_options: context_options,
+              conditions: conditions
+            }.merge(target_options)
           end
         end
 
         options.each_pair do |validator_name,validator_options|
           next unless validator_options
 
-          validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
-          #validator_options[:conditions] = conditions + extract_conditions!(validator_options)
-          validator_context_options = validator_options.delete(:with) || context_options
+          validation = {
+            validator_name: validator_name
+          }
 
-          @validations << { validator_name: validator_name, validator_options: validator_options, context_options: validator_context_options }.merge(target_options)
+          validator_options = validator_options.kind_of?(Hash) ? validator_options : {}
+
+          validation.merge!({
+            validator_options: validator_options,
+            context_options: validator_options.delete(:with) || context_options,
+            conditions: conditions + extract_conditions!(validator_options)
+          })
+
+          @validations << validation.merge(target_options)
         end
       end
     end
@@ -203,9 +213,7 @@ module Errapi
       end
     end
 
-    def evaluate_condition condition, context
-
-      value = context.current_value
+    def evaluate_condition condition, value, context
 
       conditional, condition_type, predicate = if condition.key? :if
         [ lambda{ |x| !!x }, :custom, condition[:if] ]

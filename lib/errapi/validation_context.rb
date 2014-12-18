@@ -37,7 +37,7 @@ module Errapi
       current_data = OpenStruct.new
 
       @handlers.each do |handler|
-        handler.build_current_data current_data, self
+        handler.build_current_data current_data, self if handler.respond_to? :build_current_data
       end
 
       current_data
@@ -72,6 +72,11 @@ module Errapi
     end
 
     def error? criteria = {}, &block
+
+      @handlers.each do |handler|
+        handler.build_error_criteria criteria, self if handler.respond_to? :build_error_criteria
+      end
+
       return !@errors.empty? if criteria.empty? && !block
       @errors.any?{ |err| err.matches?(criteria) && (!block || block.call(err)) }
     end

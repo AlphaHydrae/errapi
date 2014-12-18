@@ -108,7 +108,6 @@ RSpec.describe 'errapi' do
 
     expect(context.error?).to be(true)
     expect(context.errors).to have(6).items
-    puts context.errors.inspect
     expect(context.error?(location: 'bar.foo')).to be(true)
     expect(context.error?(location: 'qux')).to be(true)
     expect(context.error?(location: 'baz.2.a')).to be(true)
@@ -135,26 +134,26 @@ RSpec.describe 'errapi' do
       end
     end
 
-    validations.validate context.with(value: h)
+    validations.validate h, context
 
-    expect(state.error?).to be(false)
-    expect(state.errors).to be_empty
+    expect(context.error?).to be(false)
+    expect(context.errors).to be_empty
 
     h = {
       foo: 'baz',
       baz: []
     }
 
-    validations.validate context.with(value: h)
+    validations.validate h, context
 
-    expect(state.error?).to be(true)
-    expect(state.errors).to have(6).items
-    expect(state.error?(location: 'baz')).to be(true)
-    expect(state.error?(location: 'qux')).to be(true)
-    expect(state.error?(location: 'corge')).to be(true)
-    expect(state.error?(location: 'grault')).to be(true)
-    expect(state.error?(location: 'garply')).to be(true)
-    expect(state.error?(location: 'waldo')).to be(true)
+    expect(context.error?).to be(true)
+    expect(context.errors).to have(6).items
+    expect(context.error?(location: 'baz')).to be(true)
+    expect(context.error?(location: 'qux')).to be(true)
+    expect(context.error?(location: 'corge')).to be(true)
+    expect(context.error?(location: 'grault')).to be(true)
+    expect(context.error?(location: 'garply')).to be(true)
+    expect(context.error?(location: 'waldo')).to be(true)
   end
 
   it "should conditionally execute validations based on previous errors" do
@@ -175,25 +174,25 @@ RSpec.describe 'errapi' do
       end
     end
 
-    validations.validate context.with(value: h)
+    validations.validate h, context
 
-    expect(state.error?).to be(true)
-    expect(state.errors).to have(3).item
-    expect(state.error?(location: 'baz')).to be(true)
-    expect(state.error?(location: 'qux.corge')).to be(true)
-    expect(state.error?(location: 'qux.grault')).to be(true)
+    expect(context.error?).to be(true)
+    expect(context.errors).to have(3).item
+    expect(context.error?(location: 'baz')).to be(true)
+    expect(context.error?(location: 'qux.corge')).to be(true)
+    expect(context.error?(location: 'qux.grault')).to be(true)
 
     h = {
       foo: nil,
       qux: {}
     }
 
-    state.clear
-    validations.validate context.with(value: h)
+    context.clear
+    validations.validate h, context
 
-    expect(state.error?).to be(true)
-    expect(state.errors).to have(2).items
-    expect(state.error?(location: 'foo')).to be(true)
-    expect(state.error?(location: 'bar')).to be(true)
+    expect(context.error?).to be(true)
+    expect(context.errors).to have(2).items
+    expect(context.error?(location: 'foo')).to be(true)
+    expect(context.error?(location: 'bar')).to be(true)
   end
 end

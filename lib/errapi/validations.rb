@@ -37,7 +37,7 @@ module Errapi
             each_with = context_options.delete(:each_with) || {}
 
             values = if each
-              extract(value, !!options[:value_set], each)[:value] || []
+              extract(value, each, options)[:value] || []
             else
               [ value ]
             end
@@ -67,8 +67,10 @@ module Errapi
                   value_context_options = context_options.dup
                   value_context_options[:location] = actual_location(extract_location(value_context_options) || { relative_location: target })
 
-                  value_data = extract value, values_set[i], target
+                  value_data = extract value, target, value_set: values_set[i]
                   current_value = value_data[:value]
+
+                  value_context_options[:value] = current_value
                   value_context_options[:value_set] = value_data[:value_set]
 
                   validator = validation[:validator] || config.validators[validation[:validator_name]].new
@@ -101,6 +103,9 @@ module Errapi
 
     def build_error error, context
       error.location = @current_options[:location].to_s
+      %i(value value_set validator_name validator_options).each do |attr|
+        error[attr] = @current_options[attr] if @current_options.key? attr
+      end
     end
 
     def build_current_data data, context
@@ -121,7 +126,10 @@ module Errapi
       @current_options = original_options
     end
 
-    def extract value, value_set, target
+    def extract value, target, options = {}
+
+      value_set = !!options[:value_set]
+
       if target.nil?
         { value: value, value_set: value_set }
       elsif target.respond_to? :call

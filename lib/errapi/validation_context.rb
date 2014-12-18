@@ -14,16 +14,10 @@ module Errapi
     def add_error options = {}, &block
 
       options = options.dup
-
-      @handlers.each do |handler|
-        handler.build_error_options options, self if handler.respond_to? :build_error_options
-      end
+      handle :build_error_options, options
 
       error = ValidationError.new options
-
-      @handlers.each do |handler|
-        handler.build_error error, self if handler.respond_to? :build_error
-      end
+      handle :build_error, error
 
       yield error if block_given?
 
@@ -35,10 +29,7 @@ module Errapi
     def data
 
       current_data = OpenStruct.new
-
-      @handlers.each do |handler|
-        handler.build_current_data current_data, self if handler.respond_to? :build_current_data
-      end
+      handle :build_current_data, current_data
 
       current_data
     end
@@ -72,11 +63,7 @@ module Errapi
     end
 
     def error? criteria = {}, &block
-
-      @handlers.each do |handler|
-        handler.build_error_criteria criteria, self if handler.respond_to? :build_error_criteria
-      end
-
+      handle :build_error_criteria, criteria
       return !@errors.empty? if criteria.empty? && !block
       @errors.any?{ |err| err.matches?(criteria) && (!block || block.call(err)) }
     end
@@ -88,6 +75,14 @@ module Errapi
     def clear
       @errors.clear
       @data = OpenStruct.new
+    end
+
+    private
+
+    def handle operation, value
+      @handlers.each do |handler|
+        handler.send operation, value, self if handler.respond_to? operation
+      end
     end
   end
 end

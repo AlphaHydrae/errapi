@@ -237,7 +237,13 @@ class Errapi::ObjectValidations
         predicate
       end
     when :error
-      context.errors? predicate
+      if predicate.respond_to? :call
+        context.errors? &predicate
+      elsif predicate.kind_of? Hash
+        context.errors? predicate
+      else
+        predicate ? context.errors? : !context.errors?
+      end
     end
 
     conditional.call result

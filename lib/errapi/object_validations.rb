@@ -1,8 +1,11 @@
 class Errapi::ObjectValidations
 
-  def initialize &block
+  def initialize options = {}, &block
+
     @validations = []
     @current_options = {}
+    @config = options[:config] || Errapi.config
+
     instance_eval &block if block
   end
 
@@ -22,8 +25,6 @@ class Errapi::ObjectValidations
   end
 
   def validate value, context, options = {}
-
-    config = options.delete(:config) || Errapi.config
 
     context.with self do
       with_options options do
@@ -53,7 +54,7 @@ class Errapi::ObjectValidations
 
             values.each.with_index do |value,i|
 
-              next if validation[:conditions].any?{ |condition| !evaluate_condition(condition, value, context) }
+              next if validation[:conditions].any?{ |condition| !condition.fulfilled?(value, context) }
 
               iteration_options = {}
               iteration_options = { location: actual_location(relative_location: i), value_set: values_set[i] } if each
@@ -71,7 +72,7 @@ class Errapi::ObjectValidations
                 value_context_options[:value] = current_value
                 value_context_options[:value_set] = value_data[:value_set]
 
-                validator = validation[:validator] || config.validator(validation[:validator_name])
+                validator = validation[:validator]
                 value_context_options[:validator_name] = validation[:validator_name] if validation[:validator_name]
                 value_context_options[:validator_options] = validation[:validator_options]
 
@@ -164,7 +165,7 @@ class Errapi::ObjectValidations
     custom_validators << options.delete(:using) if options[:using] # TODO: allow array
     custom_validators << Errapi::ObjectValidations.new(&block) if block
 
-    conditions = extract_conditions! options
+    conditions = @config.extract_conditions! options
 
     # TODO: fail if there are no validations declared
     args = [ nil ] if args.empty?
@@ -197,55 +198,13 @@ class Errapi::ObjectValidations
         validation.merge!({
           validator_options: validator_options,
           context_options: validator_options.delete(:with) || context_options,
-          conditions: conditions + extract_conditions!(validator_options)
+          conditions: conditions + @config.extract_conditions!(validator_options)
         })
+
+        validation[:validator] = @config.validator validator_name, validator_options
 
         @validations << validation.merge(target_options)
       end
     end
-  end
-
-  def extract_conditions! options = {}
-    # TODO: wrap conditions in objects that can cache the result
-    [].tap do |conditions|
-      conditions << { if: options.delete(:if) } if options[:if]
-      conditions << { unless: options.delete(:unless) } if options[:unless]
-      conditions << { if_error: options.delete(:if_error) } if options[:if_error]
-      conditions << { unless_error: options.delete(:unless_error) } if options[:unless_error]
-    end
-  end
-
-  def evaluate_condition condition, value, context
-
-    conditional, condition_type, predicate = if condition.key? :if
-      [ lambda{ |x| !!x }, :custom, condition[:if] ]
-    elsif condition.key? :unless
-      [ lambda{ |x| !x }, :custom, condition[:unless] ]
-    elsif condition.key? :if_error
-      [ lambda{ |x| !!x }, :error, condition[:if_error] ]
-    elsif condition.key? :unless_error
-      [ lambda{ |x| !x }, :error, condition[:unless_error] ]
-    end
-
-    result = case condition_type
-    when :custom
-      if predicate.kind_of?(Symbol) || predicate.kind_of?(String)
-        value.respond_to?(:[]) ? value[predicate] : value.send(predicate)
-      elsif predicate.respond_to? :call
-        predicate.call value, context, @current_options
-      else
-        predicate
-      end
-    when :error
-      if predicate.respond_to? :call
-        context.errors? &predicate
-      elsif predicate.kind_of? Hash
-        context.errors? predicate
-      else
-        predicate ? context.errors? : !context.errors?
-      end
-    end
-
-    conditional.call result
   end
 end

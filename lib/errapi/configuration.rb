@@ -4,19 +4,34 @@ class Errapi::Configuration
   def initialize
     @plugins = []
     @validators = {}
+    @conditions = {}
   end
 
   def new_context
     Errapi::ValidationContext.new plugins: @plugins
   end
 
-  def register_validator name, validator
-    raise ArgumentError, "The supplied object is not a validator (it does not respond to the #validate method)" unless validator.respond_to? :validate
-    @validators[name] = validator
+  def register_validator name, factory
+    @validators[name] = factory
   end
 
-  def validator name
-    raise ArgumentError, "No validator found with name #{name.inspect}" unless @validators.key? name
-    @validators[name]
+  def validator name, options = {}
+    raise ArgumentError, "No validator factory registered for name #{name.inspect}" unless @validators.key? name
+    @validators[name].new options
+  end
+
+  def register_condition factory
+    factory.conditionals.each do |conditional|
+      @conditions[conditional] = factory
+    end
+  end
+
+  def extract_conditions! source, options = {}
+    [].tap do |conditions|
+      @conditions.each_pair do |conditional,factory|
+        next unless source.key? conditional
+        conditions << factory.new(conditional, source.delete(conditional), options)
+      end
+    end
   end
 end

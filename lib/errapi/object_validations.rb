@@ -16,9 +16,8 @@ class Errapi::ObjectValidations
   def validates_each *args, &block
 
     options = args.last.kind_of?(Hash) ? args.pop : {}
-    options[:with] ||= {}
-    options[:with][:each] = args.shift
-    options[:with][:each_with] = options.delete :each_with if options.key? :each_with
+    options[:each] = args.shift
+    options[:each_with_context] = options.delete :each_with_context if options.key? :each_with_context
     args << options
 
     validates *args, &block
@@ -32,8 +31,8 @@ class Errapi::ObjectValidations
         @validations.each do |validation|
 
           context_options = validation[:context_options]
-          each = context_options.delete :each
-          each_with = context_options.delete(:each_with) || {}
+          each = validation[:each]
+          each_with_context = validation[:each_with_context] || {}
 
           values = if each
             extract(value, each, options)[:value] || []
@@ -159,13 +158,17 @@ class Errapi::ObjectValidations
   def register_validations *args, &block
 
     options = args.last.kind_of?(Hash) ? args.pop : {}
-    context_options = options.delete(:with) || {}
+    context_options = options.delete(:with_context) || {}
 
     custom_validators = []
-    custom_validators << options.delete(:using) if options[:using] # TODO: allow array
+    custom_validators << options.delete(:with) if options[:with] # TODO: allow array
     custom_validators << Errapi::ObjectValidations.new(&block) if block
 
     conditions = @config.extract_conditions! options
+
+    each_options = {}
+    each_options[:each] = options.delete :each if options[:each]
+    each_options[:each_with_context] = options.delete :each_with_context if options[:each_with_context]
 
     # TODO: fail if there are no validations declared
     args = [ nil ] if args.empty?
@@ -182,7 +185,7 @@ class Errapi::ObjectValidations
             validator_options: {},
             context_options: context_options,
             conditions: conditions
-          }.merge(target_options)
+          }.merge(target_options).merge(each_options)
         end
       end
 
@@ -197,13 +200,13 @@ class Errapi::ObjectValidations
 
         validation.merge!({
           validator_options: validator_options,
-          context_options: validator_options.delete(:with) || context_options,
+          context_options: validator_options.delete(:with_context) || context_options,
           conditions: conditions + @config.extract_conditions!(validator_options)
         })
 
         validation[:validator] = @config.validator validator_name, validator_options
 
-        @validations << validation.merge(target_options)
+        @validations << validation.merge(target_options).merge(each_options)
       end
     end
   end

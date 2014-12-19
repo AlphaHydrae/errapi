@@ -11,7 +11,7 @@ class Errapi::Plugins::ErrorCodes
   }
 
   def build_error error, context
-    if !error.code && CODES.key?(error.validator_name) && code = CODES[error.validator_name][error.cause]
+    if !error.code && CODES.key?(error.validator_name) && code = CODES[error.validator_name][error.message]
       error.code = code
     end
   end

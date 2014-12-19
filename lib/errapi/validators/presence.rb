@@ -5,7 +5,7 @@ class Errapi::Validators::Presence
 
   def validate value, context, options = {}
     if value_blank? value
-      context.add_error cause: :blank
+      context.add_error message: :blank
     end
   end
 

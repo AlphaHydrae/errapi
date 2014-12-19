@@ -22,6 +22,7 @@ class Errapi::Configuration
 
   def register_condition factory
     factory.conditionals.each do |conditional|
+      raise ArgumentError, "Conditional #{conditional} should start with 'if' or 'unless'." unless conditional.to_s.match /^(if|unless)/
       @conditions[conditional] = factory
     end
   end

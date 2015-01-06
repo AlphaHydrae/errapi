@@ -46,7 +46,7 @@ RSpec.describe 'errapi' do
 
       errapi :with_age do
         validates :name, presence: true
-        validates Proc.new(&:age), presence: true, with_context: { location: 'age' }
+        validates Proc.new(&:age), presence: true, at: 'age'
       end
     end
 
@@ -99,8 +99,8 @@ RSpec.describe 'errapi' do
         validates :baz, presence: true
       end
 
-      validates :bar, with_context: { location: 'corge' } do
-        validates :qux, presence: true, with_context: { relative_location: 'grault' }
+      validates :bar, at_absolute_location: 'corge' do
+        validates :qux, presence: true, at_relative_location: 'grault'
       end
     end
 
@@ -167,10 +167,10 @@ RSpec.describe 'errapi' do
     validations = Errapi::ObjectValidations.new do
       validates :foo, presence: true
       validates :bar, presence: true, if_error: { location: 'foo' }
-      validates :baz, presence: { unless_error: { location: 'foo' } }
+      validates :baz, presence: { unless_error: { at_location: 'foo' } }
       validates :qux do
-        validates :corge, presence: { unless_error: { location: 'foo' } }
-        validates :grault, presence: { if_error: { relative_location: 'corge' } }
+        validates :corge, presence: { unless_error: { at_absolute_location: 'foo' } }
+        validates :grault, presence: { if_error: { at_relative_location: 'corge' } }
       end
     end
 

@@ -14,7 +14,7 @@ class Errapi::Validators::Length
     CHECKS.each_pair do |key,check|
       next unless check_value = @constraints[key]
       next if actual_length.send check, check_value
-      context.add_error message: MESSAGES[check]
+      context.add_error message: MESSAGES[key], check_value: check_value
     end
   end
 

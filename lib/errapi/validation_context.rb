@@ -14,40 +14,14 @@ class Errapi::ValidationContext
   def add_error options = {}, &block
 
     options = plug :build_error_options, options.dup
-    error = plug :build_error, Errapi::ValidationError.new(options)
+    error = Errapi::ValidationError.new options
 
     yield error if block_given?
 
+    error = plug :build_error, error
+
     @errors << error
     error
-  end
-
-  def with *args
-
-    options = args.last.kind_of?(Hash) ? args.pop : {}
-
-    original_plugins = @plugins
-
-    unless args.empty? && options.empty?
-      original_plugins = @plugins.dup
-
-      @plugins = args + @plugins
-
-      if options[:replace]
-        options[:replace].each_pair do |original,replacement|
-          @plugins.each.with_index do |plugin,i|
-            @plugins[i] = replacement if plugin == original
-          end
-        end
-      end
-    end
-
-    if block_given?
-      yield
-      @plugins = original_plugins
-    end
-
-    self
   end
 
   def errors? criteria = {}, &block

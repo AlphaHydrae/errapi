@@ -13,6 +13,7 @@ module Errapi
   def self.default_config
     Configuration.new.tap do |config|
       config.plugins << Errapi::Plugins::ErrorCodes.new
+      config.plugins << Errapi::Plugins::Messages.new
       config.register_validator :length, Errapi::Validators::Length
       config.register_validator :presence, Errapi::Validators::Presence
       config.register_condition Errapi::Condition::SimpleCheck

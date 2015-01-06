@@ -25,69 +25,63 @@ class Errapi::ObjectValidations
 
   def validate value, context, options = {}
 
-    context.with self do
-      with_options options do
+    @context = context
 
-        @validations.each do |validation|
+    with_options options do
 
-          context_options = validation[:context_options]
-          each = validation[:each]
-          each_options = validation[:each_options] || {}
+      @validations.each do |validation|
 
-          values = if each
-            extract(value, each, options)[:value] || []
-          else
-            [ value ]
-          end
+        validation_options = validation[:validation_options]
+        each = validation[:each]
 
-          values_set = if each
-            values.collect{ |v| true }
-          else
-            [ !!options[:value_set] ]
-          end
+        values = if each
+          extract(value, each, options)[:value] || []
+        else
+          [ value ]
+        end
 
-          each_options = {}
-          each_options[:location] = actual_location at_relative_location: each if each
+        values_set = if each
+          values.collect{ |v| true }
+        else
+          [ !!options[:value_set] ]
+        end
 
-          with_options each_options do
+        each_options = validation[:each_options] || {}
+        each_options[:location] = actual_location at: each if each
 
-            values.each.with_index do |value,i|
+        with_options each_options do
 
-              next if validation[:conditions].any?{ |condition| !condition.fulfilled?(value, context) }
+          values.each.with_index do |value,i|
 
-              iteration_options = {}
-              iteration_options = { location: actual_location(at_relative_location: i), value_set: values_set[i] } if each
+            next if validation[:conditions].any?{ |condition| !condition.fulfilled?(value, self) }
 
-              with_options iteration_options do
+            iteration_options = {}
+            iteration_options = { location: actual_location(at: i), value_set: values_set[i] } if each
 
-                target = validation[:target]
+            with_options iteration_options do
 
-                value_context_options = context_options.dup
-                value_context_options[:location] = actual_location(extract_location(value_context_options) || { at_relative_location: target })
+              target = validation[:target]
 
-                value_data = extract value, target, value_set: values_set[i]
-                current_value = value_data[:value]
+              value_options = validation_options.dup
+              value_options[:location] = actual_location(extract_location(value_options) || { at: target })
 
-                value_context_options[:value] = current_value
-                value_context_options[:value_set] = value_data[:value_set]
+              value_data = extract value, target, value_set: values_set[i]
+              current_value = value_data[:value]
 
-                validator = validation[:validator]
-                value_context_options[:validator_name] = validation[:validator_name] if validation[:validator_name]
-                value_context_options[:validator_options] = validation[:validator_options]
+              value_options[:value] = current_value
+              value_options[:value_set] = value_data[:value_set]
 
-                with_options value_context_options do
+              validator = validation[:validator]
+              value_options[:validator_name] = validation[:validator_name] if validation[:validator_name]
+              value_options[:validator_options] = validation[:validator_options]
 
-                  handler_options = {}
-                  handler_options[:replace] = { self => validator } if validator.kind_of? self.class
+              with_options value_options do
 
-                  context.with handler_options do
-                    validator_options = validation[:validator_options]
-                    validator_options[:location] = @current_options[:location] if @current_options[:location]
-                    validator_options[:value_set] = @current_options[:value_set] if @current_options.key? :value_set
+                validator_options = validation[:validator_options]
+                validator_options[:location] = @current_options[:location] if @current_options[:location]
+                validator_options[:value_set] = @current_options[:value_set] if @current_options.key? :value_set
 
-                    validator.validate current_value, context, validator_options
-                  end
-                end
+                validator.validate current_value, validator.kind_of?(self.class) ? context : self, validator_options
               end
             end
           end
@@ -95,26 +89,35 @@ class Errapi::ObjectValidations
       end
     end
 
+    @context = nil
+
     # TODO: add config option to raise error by default
-    raise ValidationFailed.new(context) if options[:raise_error] && context.errors?
+    raise Errapi::ValidationFailed.new(context) if options[:raise_error] && context.errors?
   end
 
-  def build_error error, context
-    error.location = @current_options[:location].to_s
-    %i(value_set validator_name validator_options).each do |attr|
-      error[attr] = @current_options[attr] if @current_options.key? attr
+  def add_error options = {}, &block
+    @context.add_error options do |error|
+
+      error.location = @current_options[:location].to_s
+      %i(value_set validator_name validator_options).each do |attr|
+        error[attr] = @current_options[attr] if @current_options.key? attr
+      end
+
+      block.call error if block
     end
   end
 
-  def build_error_criteria criteria, context
+  def errors? criteria = {}, &block
 
     if criteria[:at_absolute_location]
-      criteria[:location] = criteria.delete :at_absolute_location
-    elsif %i(at at_location at_relative_location at_absolute_location).any?{ |k| criteria.key? k }
+      criteria[:location] = criteria[:at_absolute_location]
+    elsif %i(at at_location at_relative_location).any?{ |k| criteria.key? k }
       criteria[:location] = actual_location criteria
     end
 
     %i(at at_location at_relative_location at_absolute_location).each{ |key| criteria.delete key }
+
+    @context.errors? criteria, &block
   end
 
   private
@@ -161,7 +164,7 @@ class Errapi::ObjectValidations
     end
   end
 
-  def extract_context_options! options = {}
+  def extract_validation_options! options = {}
     {}.tap do |h|
       %i(at at_location at_relative_location at_absolute_location).each do |key|
         h[key] = options.delete key if options.key? key
@@ -172,7 +175,7 @@ class Errapi::ObjectValidations
   def register_validations *args, &block
 
     options = args.last.kind_of?(Hash) ? args.pop : {}
-    context_options = extract_context_options! options
+    validation_options = extract_validation_options! options
 
     custom_validators = []
     custom_validators << options.delete(:with) if options[:with] # TODO: allow array
@@ -197,7 +200,7 @@ class Errapi::ObjectValidations
           @validations << {
             validator: custom_validator,
             validator_options: {},
-            context_options: context_options,
+            validation_options: validation_options,
             conditions: conditions
           }.merge(target_options).merge(each_options)
         end
@@ -214,7 +217,8 @@ class Errapi::ObjectValidations
 
         validation.merge!({
           validator_options: validator_options,
-          context_options: context_options.merge(extract_context_options!(validator_options)),
+          # FIXME: do not allow conflicting location options to be merged
+          validation_options: validation_options.merge(extract_validation_options!(validator_options)),
           conditions: conditions + @config.extract_conditions!(validator_options)
         })
 

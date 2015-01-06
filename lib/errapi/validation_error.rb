@@ -12,7 +12,7 @@ class Errapi::ValidationError < OpenStruct
 
   def serializable_hash options = {}
     # TODO: handle :only and :except options
-    to_h
+    to_h.select{ |k,v| !options.key?(:only) || options[:only].include?(k) }.reject{ |k,v| options[:except] && options[:except].include?(k) }
   end
 
   private

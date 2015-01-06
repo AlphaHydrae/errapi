@@ -3,11 +3,11 @@ module Errapi
   class ValidationErrorInvalid < Error; end
 
   class ValidationFailed < Error
-    attr_reader :state
+    attr_reader :context
 
-    def initialize state
+    def initialize context
       super "A validation error occurred."
-      @state = state
+      @context = context
     end
   end
 end

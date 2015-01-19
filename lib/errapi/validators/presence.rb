@@ -4,8 +4,8 @@ class Errapi::Validators::Presence
   end
 
   def validate value, context, options = {}
-    if value_blank? value
-      context.add_error message: :blank
+    if cause = check(value)
+      context.add_error cause: cause
     end
   end
 
@@ -13,15 +13,23 @@ class Errapi::Validators::Presence
 
   BLANK_REGEXP = /\A[[:space:]]*\z/
 
+  def check value
+    if value.nil?
+      :nil
+    elsif value.respond_to?(:empty?) && value.empty?
+      :empty
+    elsif value_blank? value
+      :blank
+    end
+  end
+
   def value_blank? value
     if value.respond_to? :blank?
       value.blank?
     elsif value.kind_of? String
       BLANK_REGEXP === value
-    elsif value.respond_to? :empty?
-      value.empty?
     else
-      !value
+      false
     end
   end
 end

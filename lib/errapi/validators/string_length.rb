@@ -1,6 +1,6 @@
 class Errapi::Validators::Length
   CHECKS = { is: :==, minimum: :>=, maximum: :<= }.freeze
-  MESSAGES = { is: :wrong_length, minimum: :too_short, maximum: :too_long }.freeze
+  CAUSES = { is: :wrong_length, minimum: :too_short, maximum: :too_long }.freeze
 
   def initialize options = {}
     @constraints = actual_constraints options
@@ -14,7 +14,7 @@ class Errapi::Validators::Length
     CHECKS.each_pair do |key,check|
       next unless check_value = @constraints[key]
       next if actual_length.send check, check_value
-      context.add_error message: MESSAGES[key], check_value: check_value
+      context.add_error cause: CAUSES[key], constraint_value: check_value, constrained_value: actual_length
     end
   end
 

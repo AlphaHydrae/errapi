@@ -1,9 +1,11 @@
 class Errapi::Plugins::ErrorCodes
   CODES = {
     presence: {
-      blank: 'blank'
+      nil: 'presence.nil',
+      empty: 'presence.empty',
+      blank: 'presence.blank'
     },
-    length: {
+    string_length: {
       wrong_length: 'length.invalid',
       too_short: 'length.tooShort',
       too_long: 'length.tooLong'
@@ -11,7 +13,7 @@ class Errapi::Plugins::ErrorCodes
   }
 
   def build_error error, context
-    if !error.code && CODES.key?(error.validator_name) && code = CODES[error.validator_name][error.message]
+    if !error.code && CODES.key?(error.validator_name) && code = CODES[error.validator_name][error.cause]
       error.code = code
     end
   end

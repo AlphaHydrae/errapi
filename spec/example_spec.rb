@@ -51,19 +51,19 @@ RSpec.describe 'errapi' do
     end
 
     o = klass.new
-    o.validate context, location_type: :dotted
+    o.errapi.validate context, location_type: :dotted
     expect(context.errors?).to be(true)
     expect(context.errors?(location: 'name')).to be(true)
     expect(context.errors).to have(1).item
 
     context.clear
     o.name = 'foo'
-    o.validate context, location_type: :dotted
+    o.errapi.validate context, location_type: :dotted
     expect(context.errors?).to be(false)
 
     context.clear
     o.name = nil
-    o.validate :with_age, context, location_type: :dotted
+    o.errapi(:with_age).validate context, location_type: :dotted
     expect(context.errors?).to be(true)
     expect(context.errors?(location: 'name')).to be(true)
     expect(context.errors?(location: 'age')).to be(true)

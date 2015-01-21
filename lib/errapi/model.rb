@@ -1,29 +1,23 @@
-module Errapi::Model
+module Errapi
 
-  def validate *args
+  module Model
 
-    options = args.last.kind_of?(Hash) ? args.pop : {}
-
-    name, context = :default, args.shift
-    if context.kind_of? Symbol
-      name = context
-      context = args.shift
+    def errapi name = :default
+      validator = self.class.errapi name
+      ValidatorProxy.new self, validator
     end
 
-    validator = self.class.errapi name
-    validator.validate self, context, options
-  end
+    def self.included mod
+      mod.extend ClassMethods
+    end
 
-  def self.included mod
-    mod.extend ClassMethods
-  end
+    module ClassMethods
 
-  module ClassMethods
-
-    def errapi name = :default, &block
-      @errapi_validators ||= {}
-      @errapi_validators[name] = Errapi::ObjectValidator.new(&block) if block
-      @errapi_validators[name]
+      def errapi name = :default, &block
+        @errapi_validators ||= {}
+        @errapi_validators[name] = Errapi::ObjectValidator.new(&block) if block
+        @errapi_validators[name]
+      end
     end
   end
 end

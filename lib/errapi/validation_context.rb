@@ -2,32 +2,28 @@ require 'ostruct'
 
 class Errapi::ValidationContext
   attr_reader :data
-  attr_reader :plugins
   attr_reader :errors
+  attr_reader :config
 
   def initialize options = {}
     @errors = []
-    @plugins = options[:plugins] || []
-    @data = OpenStruct.new
+    @data = OpenStruct.new options[:data] || {}
+    @config = options[:config]
   end
 
   def add_error options = {}, &block
 
-    options = plug :build_error_options, options.dup
-    error = Errapi::ValidationError.new options
-
+    error = options.kind_of?(Errapi::ValidationError) ? options : @config.new_error(options)
     yield error if block_given?
-
-    error = plug :build_error, error
+    @config.build_error error, self
 
     @errors << error
-    error
+    self
   end
 
   def errors? criteria = {}, &block
-    plug :build_error_criteria, criteria
     return !@errors.empty? if criteria.empty? && !block
-    @errors.any?{ |err| err.matches?(criteria) && (!block || block.call(err)) }
+    block ? @errors.any?{ |err| err.matches?(criteria) && block.call(err) } : @errors.any?{ |err| err.matches?(criteria) }
   end
 
   def valid?
@@ -37,16 +33,5 @@ class Errapi::ValidationContext
   def clear
     @errors.clear
     @data = OpenStruct.new
-  end
-
-  private
-
-  def plug operation, value
-
-    @plugins.each do |plugin|
-      plugin.send operation, value, self if plugin.respond_to? operation
-    end
-
-    value
   end
 end

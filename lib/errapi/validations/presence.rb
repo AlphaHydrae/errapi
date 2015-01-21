@@ -1,4 +1,4 @@
-class Errapi::Validators::Presence
+class Errapi::Validations::Presence
 
   def initialize options = {}
   end

@@ -46,24 +46,24 @@ RSpec.describe 'errapi' do
 
       errapi :with_age do
         validates :name, presence: true
-        validates Proc.new(&:age), presence: true, at: 'age'
+        validates Proc.new(&:age), presence: true, as: 'age'
       end
     end
 
     o = klass.new
-    o.validate context
+    o.validate context, location_type: :dotted
     expect(context.errors?).to be(true)
     expect(context.errors?(location: 'name')).to be(true)
     expect(context.errors).to have(1).item
 
     context.clear
     o.name = 'foo'
-    o.validate context
+    o.validate context, location_type: :dotted
     expect(context.errors?).to be(false)
 
     context.clear
     o.name = nil
-    o.validate :with_age, context
+    o.validate :with_age, context, location_type: :dotted
     expect(context.errors?).to be(true)
     expect(context.errors?(location: 'name')).to be(true)
     expect(context.errors?(location: 'age')).to be(true)
@@ -84,11 +84,11 @@ RSpec.describe 'errapi' do
       ]
     }
 
-    bar_validations = Errapi::ObjectValidations.new do
+    bar_validations = Errapi::ObjectValidator.new do
       validates :foo, presence: true
     end
 
-    validations = Errapi::ObjectValidations.new do
+    validations = Errapi::ObjectValidator.new do
 
       validates :foo, presence: true
       validates :bar, with: bar_validations
@@ -99,12 +99,12 @@ RSpec.describe 'errapi' do
         validates :baz, presence: true
       end
 
-      validates :bar, at_absolute_location: 'corge' do
-        validates :qux, presence: true, at_relative_location: 'grault'
+      validates :bar, as: 'corge' do
+        validates :qux, presence: true, as: 'grault'
       end
     end
 
-    validations.validate h, context
+    validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(true)
     expect(context.errors).to have(6).items
@@ -123,7 +123,7 @@ RSpec.describe 'errapi' do
       bar: {}
     }
 
-    validations = Errapi::ObjectValidations.new do
+    validations = Errapi::ObjectValidator.new do
       validates :baz, presence: { if: :baz }
       validates :qux, presence: { if: Proc.new{ |h| h[:foo] == 'baz' } }
       validates :corge, presence: { unless: :bar }
@@ -134,7 +134,7 @@ RSpec.describe 'errapi' do
       end
     end
 
-    validations.validate h, context
+    validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(false)
     expect(context.errors).to be_empty
@@ -144,7 +144,7 @@ RSpec.describe 'errapi' do
       baz: []
     }
 
-    validations.validate h, context
+    validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(true)
     expect(context.errors).to have(6).items
@@ -164,17 +164,17 @@ RSpec.describe 'errapi' do
       qux: {}
     }
 
-    validations = Errapi::ObjectValidations.new do
+    validations = Errapi::ObjectValidator.new do
       validates :foo, presence: true
       validates :bar, presence: true, if_error: { location: 'foo' }
-      validates :baz, presence: { unless_error: { at_location: 'foo' } }
+      validates :baz, presence: { unless_error: { location: 'foo' } }
       validates :qux do
-        validates :corge, presence: { unless_error: { at_absolute_location: 'foo' } }
-        validates :grault, presence: { if_error: { at_relative_location: 'corge' } }
+        validates :corge, presence: { unless_error: { location: 'foo' } }
+        validates :grault, presence: { if_error: { location: 'qux.corge' } }
       end
     end
 
-    validations.validate h, context
+    validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(true)
     expect(context.errors).to have(3).item
@@ -188,7 +188,7 @@ RSpec.describe 'errapi' do
     }
 
     context.clear
-    validations.validate h, context
+    validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(true)
     expect(context.errors).to have(2).items

@@ -10,8 +10,8 @@ module Errapi::Model
       context = args.shift
     end
 
-    validations = self.class.errapi name
-    validations.validate self, context, options
+    validator = self.class.errapi name
+    validator.validate self, context, options
   end
 
   def self.included mod
@@ -20,9 +20,10 @@ module Errapi::Model
 
   module ClassMethods
 
-    def errapi name = nil, &block
-      @errapi_validations ||= {}
-      @errapi_validations[name || :default] ||= Errapi::ObjectValidations.new(&block)
+    def errapi name = :default, &block
+      @errapi_validators ||= {}
+      @errapi_validators[name] = Errapi::ObjectValidator.new(&block) if block
+      @errapi_validators[name]
     end
   end
 end

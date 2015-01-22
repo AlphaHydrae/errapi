@@ -14,7 +14,7 @@ class Errapi::Validations::ArrayLength
     CHECKS.each_pair do |key,check|
       next unless check_value = @constraints[key]
       next if actual_length.send check, check_value
-      context.add_error cause: CAUSES[key], constraint_value: check_value, constrained_value: actual_length
+      context.add_error cause: CAUSES[key], check_value: check_value, checked_value: actual_length
     end
   end
 

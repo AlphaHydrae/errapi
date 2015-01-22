@@ -1,4 +1,4 @@
-class Errapi::Validations::StringLength
+class Errapi::Validations::ArrayLength
   CHECKS = { is: :==, minimum: :>=, maximum: :<= }.freeze
   CAUSES = { is: :wrong_length, minimum: :too_short, maximum: :too_long }.freeze
 

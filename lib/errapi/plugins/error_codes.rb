@@ -1,5 +1,10 @@
 class Errapi::Plugins::ErrorCodes
   CODES = {
+    array_length: {
+      wrong_length: 'length.invalid',
+      too_short: 'length.tooShort',
+      too_long: 'length.tooLong'
+    },
     presence: {
       nil: 'presence.nil',
       empty: 'presence.empty',
@@ -9,6 +14,9 @@ class Errapi::Plugins::ErrorCodes
       wrong_length: 'length.invalid',
       too_short: 'length.tooShort',
       too_long: 'length.tooLong'
+    },
+    type: {
+      wrong_type: 'type.invalid'
     }
   }
 

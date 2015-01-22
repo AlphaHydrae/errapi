@@ -14,8 +14,10 @@ module Errapi
     Configuration.new.tap do |config|
       config.plugins << Errapi::Plugins::ErrorCodes.new
       config.plugins << Errapi::Plugins::Messages.new
-      config.register_validation :length, Errapi::Validations::Length
+      config.register_validation :array_length, Errapi::Validations::ArrayLength
+      config.register_validation :string_length, Errapi::Validations::StringLength
       config.register_validation :presence, Errapi::Validations::Presence
+      config.register_validation :type, Errapi::Validations::Type
       config.register_condition Errapi::Condition::SimpleCheck
       config.register_condition Errapi::Condition::ErrorCheck
       config.register_location :dotted, Errapi::Locations::Dotted

@@ -1,4 +1,5 @@
 module Errapi
+  # TODO: check all "raise" statements and use custom errors
   class Error < StandardError; end
   class ValidationErrorInvalid < Error; end
   class ValidationDefinitionInvalid < Error; end

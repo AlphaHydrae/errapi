@@ -33,9 +33,10 @@ module Errapi
       config.plugin Errapi::Plugins::I18nMessages
       config.plugin Errapi::Plugins::Reason
       config.plugin Errapi::Plugins::Location
-      config.register_validation :length, Errapi::Validations::Length
-      config.register_validation :presence, Errapi::Validations::Presence
-      config.register_validation :type, Errapi::Validations::Type
+      config.validation_factory Errapi::Validations::Length
+      config.validation_factory Errapi::Validations::Presence.new
+      config.validation_factory Errapi::Validations::Trim
+      config.validation_factory Errapi::Validations::Type
       config.register_condition Errapi::Condition::SimpleCheck
       config.register_condition Errapi::Condition::ErrorCheck
     end

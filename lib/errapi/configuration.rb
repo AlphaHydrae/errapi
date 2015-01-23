@@ -34,19 +34,22 @@ module Errapi
       Errapi::ValidationContext.new config: self
     end
 
-    def plugin plugin, options = {}
-      name = options[:name] || Utils.underscore(plugin.to_s.sub(/.*::/, ''))
-      plugin.config = self if plugin.respond_to? :config=
-      @plugins[name] = plugin
+    def plugin impl, options = {}
+      name = options[:name] || Utils.underscore(impl.to_s.sub(/.*::/, '')).to_sym
+      impl.config = self if impl.respond_to? :config=
+      @plugins[name] = impl
     end
 
-    def register_validation name, factory
+    def validation_factory factory, options = {}
+      name = options[:name] || Utils.underscore(factory.to_s.sub(/.*::/, '')).to_sym
+      factory.config = self if factory.respond_to? :config=
       @validation_factories[name] = factory
     end
 
     def validation name, options = {}
       raise ArgumentError, "No validation factory registered for name #{name.inspect}" unless @validation_factories.key? name
-      @validation_factories[name].new options
+      factory = @validation_factories[name]
+      factory.respond_to?(:validation) ? factory.validation(options) : factory.new(options)
     end
 
     def register_condition factory

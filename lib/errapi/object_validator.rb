@@ -43,6 +43,7 @@ module Errapi
         no_location
       end
 
+      source = options[:source]
       context_proxy = ContextProxy.new context, self, location
 
       @validations.each do |validation_definition|
@@ -56,9 +57,11 @@ module Errapi
           each_values = extract(value, each[:target], options)[:value]
           each_values_set = each_values.collect{ |v| true } if each_values.kind_of? Array
           each_values = [] unless each_values.kind_of? Array
+          each_sources = each_values.collect{ |v| source }
         else
           each_values = [ value ]
           each_values_set = [ options.fetch(:value_set, true) ]
+          each_sources = [ source ]
         end
 
         each_location = each ? location.relative(each[:options][:as] || each[:target]) : location
@@ -76,12 +79,14 @@ module Errapi
 
             validation_definition[:targets].each do |target|
 
-              target_value_info = extract each_value, target, value_set: each_values_set[i]
+              target_value_info = extract each_value, target, value_set: each_values_set[i], source: source
 
               validation_location = target ? each_index_location.relative(validation[:target_alias] || target) : each_index_location
               context_proxy.current_location = validation_location
 
               error_options = {
+                value: target_value_info[:value],
+                source: target_value_info[:source],
                 value_set: target_value_info[:value_set],
                 constraints: validation[:validation_options]
               }
@@ -121,18 +126,19 @@ module Errapi
 
     def extract value, target, options = {}
 
+      source = options[:source]
       value_set = options.fetch :value_set, true
 
       if target.nil?
-        { value: value, value_set: value_set }
+        { value: value, value_set: value_set, source: source }
       elsif target.respond_to? :call
-        { value: target.call(value), value_set: value_set }
+        { value: target.call(value), value_set: value_set, source: value }
       elsif value.kind_of? Hash
-        { value: value[target], value_set: value.key?(target) }
+        { value: value[target], value_set: value.key?(target), source: value }
       elsif value.respond_to?(target)
-        { value: value.send(target), value_set: value_set }
+        { value: value.send(target), value_set: value_set, source: value }
       else
-        { value_set: false }
+        { value_set: false, source: value }
       end
     end
 

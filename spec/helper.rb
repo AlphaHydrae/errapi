@@ -86,6 +86,12 @@ RSpec.configure do |config|
     # a real object. This is generally recommended.
     mocks.verify_partial_doubles = true
   end
+
+  config.before :suite do
+    I18n.load_path = [ File.expand_path(File.join(File.dirname(__FILE__), '..', 'locales', 'en.yml')) ]
+    I18n.locale = :en
+    I18n.default_locale = :en
+  end
 end
 
 require 'errapi'

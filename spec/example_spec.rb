@@ -107,13 +107,13 @@ RSpec.describe 'errapi' do
     validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(true)
-    expect(context.errors).to have(6).items
     expect(context.errors?(location: 'bar.foo')).to be(true)
     expect(context.errors?(location: 'qux')).to be(true)
     expect(context.errors?(location: 'baz.2.a')).to be(true)
     expect(context.errors?(location: 'baz.4.a')).to be(true)
     expect(context.errors?(location: 'bar.baz')).to be(true)
     expect(context.errors?(location: 'corge.grault')).to be(true)
+    expect(context.errors).to have(6).items
   end
 
   it "should conditionally execute validations based on custom conditions" do
@@ -147,13 +147,13 @@ RSpec.describe 'errapi' do
     validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(true)
-    expect(context.errors).to have(6).items
     expect(context.errors?(location: 'baz')).to be(true)
     expect(context.errors?(location: 'qux')).to be(true)
     expect(context.errors?(location: 'corge')).to be(true)
     expect(context.errors?(location: 'grault')).to be(true)
     expect(context.errors?(location: 'garply')).to be(true)
     expect(context.errors?(location: 'waldo')).to be(true)
+    expect(context.errors).to have(6).items
   end
 
   it "should conditionally execute validations based on previous errors" do
@@ -194,9 +194,9 @@ RSpec.describe 'errapi' do
     validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(true)
-    expect(context.errors).to have(2).items
     expect(context.errors?(location: 'foo')).to be(true)
     expect(context.errors?(location: 'bar')).to be(true)
+    expect(context.errors).to have(2).items
   end
 
   it "should serialize errors" do
@@ -233,16 +233,44 @@ RSpec.describe 'errapi' do
 
     validations.validate h, context, location_type: :dotted
 
-    expect(context.errors?).to be(true)
-    expect(context.errors).to have(6).items
     expect(context.serialize).to eq({
       errors: [
-        { reason: :empty, location: 'qux', location_type: :dotted },
-        { reason: :null, location: 'baz.2.a', location_type: :dotted },
-        { reason: :blank, location: 'baz.3.a', location_type: :dotted },
-        { reason: :missing, location: 'baz.4.a', location_type: :dotted },
-        { reason: :missing, location: 'bar.baz', location_type: :dotted },
-        { reason: :null, location: 'corge.grault', location_type: :dotted }
+        {
+          reason: :empty,
+          message: "This value cannot be empty.",
+          location: 'qux',
+          location_type: :dotted
+        },
+        {
+          reason: :null,
+          message: "This value cannot be null.",
+          location: 'baz.2.a',
+          location_type: :dotted
+        },
+        {
+          reason: :blank,
+          message: "This value cannot be blank.",
+          location: 'baz.3.a',
+          location_type: :dotted
+        },
+        {
+          reason: :missing,
+          message: "This value is required.",
+          location: 'baz.4.a',
+          location_type: :dotted
+        },
+        {
+          reason: :missing,
+          message: "This value is required.",
+          location: 'bar.baz',
+          location_type: :dotted
+        },
+        {
+          reason: :null,
+          message: "This value cannot be null.",
+          location: 'corge.grault',
+          location_type: :dotted
+        }
       ]
     })
   end

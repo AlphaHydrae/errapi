@@ -1,9 +1,6 @@
 module Errapi::Validations
   class Presence < Factory
-    class Implementation
-
-      def initialize options = {}
-      end
+    class Implementation < Base
 
       def validate value, context, options = {}
         if reason = check(value, options.fetch(:value_set, true))
@@ -16,6 +13,7 @@ module Errapi::Validations
       BLANK_REGEXP = /\A[[:space:]]*\z/
 
       def check value, value_set
+        # TODO: allow customization (e.g. values that are not required, booleans, etc)
         if !value_set
           :missing
         elsif value.nil?

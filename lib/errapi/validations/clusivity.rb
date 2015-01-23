@@ -2,7 +2,9 @@ module Errapi::Validations
   module Clusivity
 
     def check_delimiter! option_description
-      raise ArgumentError, "The #{option_description} option must be an object with the #include? method, a proc, a lambda or a symbol, but a #{@delimiter.class.name} was given." if IN_METHOD_CHECKS.none?{ |c| @delimiter.respond_to? c }
+      if DELIMITER_METHOD_CHECKS.none?{ |c| @delimiter.respond_to? c }
+        raise ArgumentError, "The #{option_description} option must be an object with the #include? method, a proc, a lambda or a symbol, but a #{@delimiter.class.name} was given."
+      end
     end
 
     def members source
@@ -15,7 +17,10 @@ module Errapi::Validations
         @delimiter
       end
 
-      raise ArgumentError, "An enumerable must be returned from the given proc or lambda, or from calling the method corresponding to the given symbol, but a #{enumerable.class.name} was returned." unless enumerable.respond_to? :include?
+      unless enumerable.respond_to? :include?
+        raise ArgumentError, "An enumerable must be returned from the given proc or lambda, or from calling the method corresponding to the given symbol, but a #{enumerable.class.name} was returned."
+      end
+
       enumerable
     end
 
@@ -25,6 +30,6 @@ module Errapi::Validations
 
     private
 
-    IN_METHOD_CHECKS = %i(include? call to_sym).freeze
+    DELIMITER_METHOD_CHECKS = %i(include? call to_sym).freeze
   end
 end

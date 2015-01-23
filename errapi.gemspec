@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib"]
   s.authors = ["Simon Oulevay"]
-  s.date = "2015-01-06"
+  s.date = "2015-01-23"
   s.description = "Utilities to validate data and serialize errors."
   s.email = "git@alphahydrae.com"
   s.extra_rdoc_files = [
@@ -27,50 +27,61 @@ Gem::Specification.new do |s|
     "lib/errapi/condition.rb",
     "lib/errapi/configuration.rb",
     "lib/errapi/errors.rb",
+    "lib/errapi/location_builders.rb",
+    "lib/errapi/locations.rb",
+    "lib/errapi/locations/dotted.rb",
+    "lib/errapi/locations/json.rb",
+    "lib/errapi/locations/none.rb",
     "lib/errapi/model.rb",
-    "lib/errapi/object_validations.rb",
+    "lib/errapi/object_validator.rb",
     "lib/errapi/plugins.rb",
-    "lib/errapi/plugins/error_codes.rb",
-    "lib/errapi/plugins/messages.rb",
+    "lib/errapi/plugins/i18n_messages.rb",
+    "lib/errapi/plugins/location.rb",
+    "lib/errapi/plugins/reason.rb",
     "lib/errapi/validation_context.rb",
     "lib/errapi/validation_error.rb",
-    "lib/errapi/validators.rb",
-    "lib/errapi/validators/length.rb",
-    "lib/errapi/validators/presence.rb"
+    "lib/errapi/validations.rb",
+    "lib/errapi/validations/length.rb",
+    "lib/errapi/validations/presence.rb",
+    "lib/errapi/validations/type.rb",
+    "lib/errapi/validator_proxy.rb"
   ]
   s.homepage = "http://github.com/AlphaHydrae/errapi"
   s.licenses = ["MIT"]
-  s.rubygems_version = "2.2.2"
+  s.rubygems_version = "2.4.3"
   s.summary = "An extensible API-oriented validation library."
 
   if s.respond_to? :specification_version then
     s.specification_version = 4
 
     if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
+      s.add_development_dependency(%q<i18n>, ["~> 0.7.0"])
       s.add_development_dependency(%q<rake>, ["~> 10.3"])
       s.add_development_dependency(%q<rspec>, ["~> 3.1"])
       s.add_development_dependency(%q<rspec-collection_matchers>, ["~> 1.1"])
       s.add_development_dependency(%q<jeweler>, ["~> 2.0"])
       s.add_development_dependency(%q<rake-version>, ["~> 0.4"])
-      s.add_development_dependency(%q<simplecov>, ["~> 0.9"])
-      s.add_development_dependency(%q<coveralls>, ["~> 0.7"])
+      s.add_development_dependency(%q<simplecov>, ["~> 0.9.1"])
+      s.add_development_dependency(%q<coveralls>, ["~> 0.7.3"])
     else
+      s.add_dependency(%q<i18n>, ["~> 0.7.0"])
       s.add_dependency(%q<rake>, ["~> 10.3"])
       s.add_dependency(%q<rspec>, ["~> 3.1"])
       s.add_dependency(%q<rspec-collection_matchers>, ["~> 1.1"])
       s.add_dependency(%q<jeweler>, ["~> 2.0"])
       s.add_dependency(%q<rake-version>, ["~> 0.4"])
-      s.add_dependency(%q<simplecov>, ["~> 0.9"])
-      s.add_dependency(%q<coveralls>, ["~> 0.7"])
+      s.add_dependency(%q<simplecov>, ["~> 0.9.1"])
+      s.add_dependency(%q<coveralls>, ["~> 0.7.3"])
     end
   else
+    s.add_dependency(%q<i18n>, ["~> 0.7.0"])
     s.add_dependency(%q<rake>, ["~> 10.3"])
     s.add_dependency(%q<rspec>, ["~> 3.1"])
     s.add_dependency(%q<rspec-collection_matchers>, ["~> 1.1"])
     s.add_dependency(%q<jeweler>, ["~> 2.0"])
     s.add_dependency(%q<rake-version>, ["~> 0.4"])
-    s.add_dependency(%q<simplecov>, ["~> 0.9"])
-    s.add_dependency(%q<coveralls>, ["~> 0.7"])
+    s.add_dependency(%q<simplecov>, ["~> 0.9.1"])
+    s.add_dependency(%q<coveralls>, ["~> 0.7.3"])
   end
 end
 

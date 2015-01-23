@@ -14,13 +14,12 @@ module Errapi
     Configuration.new.tap do |config|
       config.plugins << Errapi::Plugins::I18nMessages.new
       config.plugins << Errapi::Plugins::Reason.new
+      config.plugins << Errapi::Plugins::Location.new
       config.register_validation :length, Errapi::Validations::Length
       config.register_validation :presence, Errapi::Validations::Presence
       config.register_validation :type, Errapi::Validations::Type
       config.register_condition Errapi::Condition::SimpleCheck
       config.register_condition Errapi::Condition::ErrorCheck
-      config.register_location :dotted, Errapi::Locations::Dotted
-      config.register_location :json, Errapi::Locations::Json
     end
   end
 end

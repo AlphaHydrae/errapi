@@ -166,21 +166,24 @@ RSpec.describe 'errapi' do
 
     validations = Errapi::ObjectValidator.new do
       validates :foo, presence: true
-      validates :bar, presence: true, if_error: { location: 'foo' }
-      validates :baz, presence: { unless_error: { location: 'foo' } }
+      validates :bar, presence: true, if_error: { location: dotted_location('foo') }
+      validates :baz, presence: { unless_error: { location: dotted_location('foo') } }
       validates :qux do
         validates :corge, presence: { unless_error: { location: 'foo' } }
         validates :grault, presence: { if_error: { location: 'qux.corge' } }
+        validates :garply, presence: { if_error: { location: relative_location('corge') } }
+        validates :waldo, presence: true, if_error: { location: json_location('foo') }
       end
     end
 
     validations.validate h, context, location_type: :dotted
 
     expect(context.errors?).to be(true)
-    expect(context.errors).to have(3).item
     expect(context.errors?(location: 'baz')).to be(true)
     expect(context.errors?(location: 'qux.corge')).to be(true)
     expect(context.errors?(location: 'qux.grault')).to be(true)
+    expect(context.errors?(location: 'qux.garply')).to be(true)
+    expect(context.errors).to have(4).item
 
     h = {
       foo: nil,
@@ -234,12 +237,12 @@ RSpec.describe 'errapi' do
     expect(context.errors).to have(6).items
     expect(context.serialize).to eq({
       errors: [
-        { reason: :empty },
-        { reason: :null },
-        { reason: :blank },
-        { reason: :missing },
-        { reason: :missing },
-        { reason: :null }
+        { reason: :empty, location: 'qux', location_type: :dotted },
+        { reason: :null, location: 'baz.2.a', location_type: :dotted },
+        { reason: :blank, location: 'baz.3.a', location_type: :dotted },
+        { reason: :missing, location: 'baz.4.a', location_type: :dotted },
+        { reason: :missing, location: 'bar.baz', location_type: :dotted },
+        { reason: :null, location: 'corge.grault', location_type: :dotted }
       ]
     })
   end

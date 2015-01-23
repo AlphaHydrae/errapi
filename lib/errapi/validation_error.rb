@@ -7,7 +7,6 @@ class Errapi::ValidationError
   attr_accessor :validation
   attr_accessor :constraints
   attr_accessor :location
-  attr_accessor :location_type
 
   def initialize options = {}
     ATTRIBUTES.each do |attr|
@@ -23,7 +22,7 @@ class Errapi::ValidationError
 
   private
 
-  ATTRIBUTES = %i(reason location location_type check_value checked_value validation)
+  ATTRIBUTES = %i(reason location check_value checked_value validation)
 
   def criterion_matches? criteria, attr
     return true unless criteria.key? attr

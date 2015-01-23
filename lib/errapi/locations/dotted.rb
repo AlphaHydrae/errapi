@@ -14,12 +14,16 @@ module Errapi
       end
     end
 
-    def error_options
-      @location.nil? ? {} : { location: @location, location_type: :dotted }
+    def location_type
+      :dotted
     end
 
     def serialize
       @location.nil? ? nil : @location
+    end
+
+    def === location
+      @location.to_s == location.to_s
     end
 
     def to_s

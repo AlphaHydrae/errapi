@@ -9,12 +9,12 @@ module Errapi
       self
     end
 
-    def error_options
-      {}
-    end
-
     def serialize
       nil
+    end
+
+    def === location
+      location.nil? || self == location
     end
 
     def to_s
@@ -23,6 +23,6 @@ module Errapi
 
     private
 
-    LOCATION_STRING = ''
+    LOCATION_STRING = ''.freeze
   end
 end

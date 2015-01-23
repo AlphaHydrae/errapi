@@ -33,15 +33,6 @@ class Errapi::Configuration
     @validation_factories[name].new options
   end
 
-  def register_location name, factory
-    @location_factories[name] = factory
-  end
-
-  def location name, initial_location = nil
-    raise ArgumentError, "No location factory registered for name #{name.inspect}" unless @location_factories.key? name
-    @location_factories[name].new initial_location
-  end
-
   def register_condition factory
     factory.conditionals.each do |conditional|
       raise ArgumentError, "Conditional #{conditional} should start with 'if' or 'unless'." unless conditional.to_s.match /^(if|unless)/

@@ -1,13 +1,11 @@
 require 'ostruct'
 
 class Errapi::ValidationError
-  attr_accessor :cause
+  attr_accessor :reason
   attr_accessor :check_value
   attr_accessor :checked_value
-  attr_accessor :validation_name
-  attr_accessor :validation_options
-  attr_accessor :message
-  attr_accessor :code
+  attr_accessor :validation
+  attr_accessor :constraints
   attr_accessor :location
   attr_accessor :location_type
 
@@ -23,27 +21,23 @@ class Errapi::ValidationError
     ATTRIBUTES.all?{ |attr| criterion_matches? criteria, attr }
   end
 
-  def serializable_hash options = {}
-
-    attrs = SERIALIZABLE_ATTRIBUTES
-    attrs = attrs.select{ |attr| options[:only].include? attr } if options.key? :only
-    attrs = attrs.reject{ |attr| options[:except].include? attr } if options.key? :except
-
-    attrs.inject({}) do |memo,attr|
-      value = send attr
-      memo[attr] = value unless value.nil?
-      memo
-    end
-  end
-
   private
 
-  SERIALIZABLE_ATTRIBUTES = %i(message code location location_type)
-  ATTRIBUTES = %i(cause check_value checked_value validation_name) + SERIALIZABLE_ATTRIBUTES
+  ATTRIBUTES = %i(reason location location_type check_value checked_value validation)
 
   def criterion_matches? criteria, attr
     return true unless criteria.key? attr
-    value = criteria[attr]
-    value.kind_of?(Regexp) ? !!value.match(send(attr).to_s) : value == send(attr)
+
+    criterion, value = criteria[attr], send(attr)
+
+    if criterion.kind_of? Regexp
+      !!criterion.match(value.to_s)
+    elsif criterion.kind_of? String
+      criterion == value.to_s
+    elsif criterion.respond_to? :===
+      criterion === value
+    else
+      criterion == value
+    end
   end
 end

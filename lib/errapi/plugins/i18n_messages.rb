@@ -1,4 +1,4 @@
-class Errapi::Plugins::Messages
+class Errapi::Plugins::I18nMessages
   MESSAGES = {
     array_length: {
       wrong_length: 'This array must contain exactly %{check_value} elements but has %{checked_value} elements.',
@@ -20,8 +20,8 @@ class Errapi::Plugins::Messages
     }
   }
 
-  def build_error error, context
-    if !error.message && MESSAGES.key?(error.validation_name) && message = MESSAGES[error.validation_name][error.cause]
+  def _disabled_build_error error, context
+    if !error.message && MESSAGES.key?(error.validation) && message = MESSAGES[error.validation][error.reason]
 
       %w(check_value checked_value).each do |interpolated|
         if error.respond_to? interpolated

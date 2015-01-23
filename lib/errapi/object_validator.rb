@@ -49,13 +49,13 @@ class Errapi::ObjectValidator
         each_values = [] unless each_values.kind_of? Array
       else
         each_values = [ value ]
-        each_values_set = [ !!options[:values_set] ]
+        each_values_set = [ options.fetch(:value_set, true) ]
       end
 
       each_location = each ? location.relative(each[:options][:as] || each[:target]) : location
 
       each_values.each.with_index do |each_value,i|
-        
+
         next if validation_definition[:conditions].any?{ |condition| !condition.fulfilled?(each_value, context_proxy) }
 
         each_index_location = each ? each_location.relative(i) : location
@@ -72,10 +72,10 @@ class Errapi::ObjectValidator
 
             error_options = {
               value_set: target_value_info[:value_set],
-              validation_options: validation[:validation_options]
+              constraints: validation[:validation_options]
             }.merge(validation_location.error_options)
 
-            error_options[:validation_name] = validation[:validation_name] if validation[:validation_name]
+            error_options[:validation] = validation[:validation_name] if validation[:validation_name]
 
             context_proxy.with_error_options error_options do
               validation_options = { location: validation_location, value_set: target_value_info[:value_set] }
@@ -96,7 +96,7 @@ class Errapi::ObjectValidator
 
   def extract value, target, options = {}
 
-    value_set = !!options[:value_set]
+    value_set = options.fetch :value_set, true
 
     if target.nil?
       { value: value, value_set: value_set }

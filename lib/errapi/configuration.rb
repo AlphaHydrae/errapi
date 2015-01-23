@@ -16,6 +16,10 @@ class Errapi::Configuration
     apply_plugins :build_error, error, context
   end
 
+  def serialize_error error, serialized
+    apply_plugins :serialize_error, error, serialized
+  end
+
   def new_context
     Errapi::ValidationContext.new config: self
   end

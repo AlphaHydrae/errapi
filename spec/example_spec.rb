@@ -6,31 +6,31 @@ RSpec.describe 'errapi' do
 
   it "should collect and find errors" do
 
-    context.add_error message: 'foo'
-    context.add_error message: 'bar', code: 'auth.failed'
-    context.add_error{ |err| err.message = 'baz'; err.code = 'json.invalid' }
+    context.add_error reason: 'foo'
+    context.add_error reason: 'bar', validation: 'yeehaw'
+    context.add_error{ |err| err.reason = 'baz'; err.validation = "rock'n'roll" }
 
-    %w(foo bar baz).each do |message|
-      expect(context.errors?(message: message)).to be(true)
+    %w(foo bar baz).each do |reason|
+      expect(context.errors?(reason: reason)).to be(true)
     end
 
     [ /fo/, /ba/ ].each do |regexp|
-      expect(context.errors?(message: regexp)).to be(true)
+      expect(context.errors?(reason: regexp)).to be(true)
     end
 
-    expect(context.errors?(message: 'qux')).to be(false)
-    expect(context.errors?(message: /qux/)).to be(false)
+    expect(context.errors?(reason: 'qux')).to be(false)
+    expect(context.errors?(reason: /qux/)).to be(false)
 
-    %w(auth.failed json.invalid).each do |code|
-      expect(context.errors?(code: code)).to be(true)
+    %w(yeehaw rock'n'roll).each do |validation|
+      expect(context.errors?(validation: validation)).to be(true)
     end
 
-    [ /^auth\./, /invalid/ ].each do |regexp|
-      expect(context.errors?(code: regexp)).to be(true)
+    [ /^yee/, /k'n'r/ ].each do |regexp|
+      expect(context.errors?(validation: regexp)).to be(true)
     end
 
-    expect(context.errors?(code: 'broken')).to be(false)
-    expect(context.errors?(code: /broke/)).to be(false)
+    expect(context.errors?(validation: 'broken')).to be(false)
+    expect(context.errors?(validation: /broke/)).to be(false)
   end
 
   it "should provide a model extension to validate objects" do
@@ -194,5 +194,53 @@ RSpec.describe 'errapi' do
     expect(context.errors).to have(2).items
     expect(context.errors?(location: 'foo')).to be(true)
     expect(context.errors?(location: 'bar')).to be(true)
+  end
+
+  it "should serialize errors" do
+
+    h = {
+      foo: 'bar',
+      bar: {
+        qux: nil
+      },
+      baz: [
+        { a: 'b' },
+        { a: 'c' },
+        { a: nil },
+        { a: '  ' },
+        {}
+      ],
+      qux: ''
+    }
+
+    validations = Errapi::ObjectValidator.new do
+
+      validates :foo, presence: true
+      validates :qux, presence: true
+      validates_each :baz, :a, presence: true
+
+      validates :bar do
+        validates :baz, presence: true
+      end
+
+      validates :bar, as: 'corge' do
+        validates :qux, presence: true, as: 'grault'
+      end
+    end
+
+    validations.validate h, context, location_type: :dotted
+
+    expect(context.errors?).to be(true)
+    expect(context.errors).to have(6).items
+    expect(context.serialize).to eq({
+      errors: [
+        { reason: :empty },
+        { reason: :null },
+        { reason: :blank },
+        { reason: :missing },
+        { reason: :missing },
+        { reason: :null }
+      ]
+    })
   end
 end

@@ -4,8 +4,8 @@ class Errapi::Validations::Presence
   end
 
   def validate value, context, options = {}
-    if cause = check(value)
-      context.add_error cause: cause
+    if reason = check(value, options.fetch(:value_set, true))
+      context.add_error reason: reason
     end
   end
 
@@ -13,9 +13,11 @@ class Errapi::Validations::Presence
 
   BLANK_REGEXP = /\A[[:space:]]*\z/
 
-  def check value
-    if value.nil?
-      :nil
+  def check value, value_set
+    if !value_set
+      :missing
+    elsif value.nil?
+      :null
     elsif value.respond_to?(:empty?) && value.empty?
       :empty
     elsif value_blank? value

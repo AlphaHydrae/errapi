@@ -1,7 +1,7 @@
 module Errapi
 
   class ObjectValidator
-    include LocationBuilders
+    include Errapi::LocationBuilders
 
     def initialize options = {}, &block
 

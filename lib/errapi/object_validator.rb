@@ -1,7 +1,9 @@
+require File.join(File.dirname(__FILE__), 'location_builders.rb')
+
 module Errapi
 
   class ObjectValidator
-    include Errapi::LocationBuilders
+    include LocationBuilders
 
     def initialize options = {}, &block
 

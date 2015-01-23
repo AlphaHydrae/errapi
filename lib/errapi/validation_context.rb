@@ -35,6 +35,7 @@ class Errapi::ValidationContext
     @data = OpenStruct.new
   end
 
+  # TODO: add custom serialization options
   def serialize
     # TODO: add hook for plugins to serialize context
     { errors: [] }.tap do |h|

@@ -38,6 +38,8 @@ Gem::Specification.new do |s|
     "lib/errapi/plugins/i18n_messages.rb",
     "lib/errapi/plugins/location.rb",
     "lib/errapi/plugins/reason.rb",
+    "lib/errapi/single_validator.rb",
+    "lib/errapi/utils.rb",
     "lib/errapi/validation_context.rb",
     "lib/errapi/validation_error.rb",
     "lib/errapi/validations.rb",

@@ -28,6 +28,8 @@ module Errapi
     end
 
     def validate value, context, options = {}
+      # TODO: skip validation by default if previous errors at current location
+      # TODO: add support for previous value and skip validation by default if value is unchanged
 
       return context.valid? unless @validations
 
@@ -135,6 +137,7 @@ module Errapi
     end
 
     def register_validations *args, &block
+      # TODO: allow to set custom error options (e.g. reason) when registering validation
 
       options = args.last.kind_of?(Hash) ? args.pop : {}
       target_alias = options.delete :as

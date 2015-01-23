@@ -27,7 +27,8 @@ class Errapi::ValidationError
   def criterion_matches? criteria, attr
     return true unless criteria.key? attr
 
-    criterion, value = criteria[attr], send(attr)
+    value = send attr
+    criterion = criteria[attr]
 
     if criterion.kind_of? Regexp
       !!criterion.match(value.to_s)

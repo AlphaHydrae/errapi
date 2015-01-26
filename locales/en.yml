@@ -9,3 +9,6 @@ en:
     wrong_length: "This value is the wrong length (the expected length is %{check_value} while the actual length is %{checked_value}."
     wrong_type: "This value is of the wrong type."
     untrimmed: "This value must not have extra whitespace at the beginning or end."
+    not_included: "This value is not amongst the list of allowed values."
+    excluded: "This value is amongst the list of forbidden values."
+    invalid_format: "This value does not match the required format."

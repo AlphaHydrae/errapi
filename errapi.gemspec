@@ -11,7 +11,7 @@ Gem::Specification.new do |s|
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.require_paths = ["lib"]
   s.authors = ["Simon Oulevay"]
-  s.date = "2015-01-23"
+  s.date = "2015-01-26"
   s.description = "Utilities to validate data and serialize errors."
   s.email = "git@alphahydrae.com"
   s.extra_rdoc_files = [
@@ -43,8 +43,13 @@ Gem::Specification.new do |s|
     "lib/errapi/validation_context.rb",
     "lib/errapi/validation_error.rb",
     "lib/errapi/validations.rb",
+    "lib/errapi/validations/clusivity.rb",
+    "lib/errapi/validations/exclusion.rb",
+    "lib/errapi/validations/format.rb",
+    "lib/errapi/validations/inclusion.rb",
     "lib/errapi/validations/length.rb",
     "lib/errapi/validations/presence.rb",
+    "lib/errapi/validations/trim.rb",
     "lib/errapi/validations/type.rb",
     "lib/errapi/validator_proxy.rb"
   ]

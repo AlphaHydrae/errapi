@@ -5,11 +5,10 @@ module Errapi
   class ObjectValidator
     include LocationBuilders
 
-    def initialize options = {}, &block
-
+    def initialize config, options = {}, &block
+      # TODO: remove these options or if used, pass them to new validators instantiated in #register_validations
+      @config = config
       @validations = []
-      @config = options[:config] || Errapi.config
-
       instance_eval &block if block
     end
 
@@ -158,7 +157,7 @@ module Errapi
       end
 
       if block
-        validations_definition[:validations] << { validation: self.class.new(config: @config, &block), validation_options: {}, target_alias: target_alias }
+        validations_definition[:validations] << { validation: self.class.new(@config, &block), validation_options: {}, target_alias: target_alias }
       end
 
       if options[:each]

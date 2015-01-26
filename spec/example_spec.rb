@@ -1,8 +1,8 @@
 require 'helper'
 
 RSpec.describe 'errapi' do
-
-  let(:context){ Errapi.config.new_context }
+  let(:config){ Errapi.config }
+  let(:context){ config.new_context }
 
   it "should collect and find errors" do
 
@@ -84,11 +84,11 @@ RSpec.describe 'errapi' do
       ]
     }
 
-    bar_validations = Errapi::ObjectValidator.new do
+    bar_validations = Errapi::ObjectValidator.new config do
       validates :foo, presence: true
     end
 
-    validations = Errapi::ObjectValidator.new do
+    validations = Errapi::ObjectValidator.new config do
 
       validates :foo, presence: true
       validates :bar, with: bar_validations
@@ -123,7 +123,7 @@ RSpec.describe 'errapi' do
       bar: {}
     }
 
-    validations = Errapi::ObjectValidator.new do
+    validations = Errapi::ObjectValidator.new config do
       validates :baz, presence: { if: :baz }
       validates :qux, presence: { if: Proc.new{ |h| h[:foo] == 'baz' } }
       validates :corge, presence: { unless: :bar }
@@ -164,7 +164,7 @@ RSpec.describe 'errapi' do
       qux: {}
     }
 
-    validations = Errapi::ObjectValidator.new do
+    validations = Errapi::ObjectValidator.new config do
       validates :foo, presence: true
       validates :bar, presence: true, if_error: { location: dotted_location('foo') }
       validates :baz, presence: { unless_error: { location: dotted_location('foo') } }
@@ -216,7 +216,7 @@ RSpec.describe 'errapi' do
       qux: ''
     }
 
-    validations = Errapi::ObjectValidator.new do
+    validations = Errapi::ObjectValidator.new config do
 
       validates :foo, presence: true
       validates :qux, presence: true

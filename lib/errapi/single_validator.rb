@@ -2,27 +2,18 @@ module Errapi
 
   class SingleValidator
 
-    def self.configure options = {}, &block
-      raise "Validator has already been configured. You must call this method before #validate or the various #validates methods." if @errapi_validator
-      @errapi_validator = ObjectValidator.new options, &block
-    end
+    def self.configure *args, &block
 
-    def self.validates *args, &block
-      init_validator.validates *args, &block
-    end
+      options = args.last.kind_of?(Hash) ? args.pop : {}
+      config = options[:config] || Errapi.config
+      config = Errapi.config config if config.kind_of? Symbol
 
-    def self.validates_each *args, &block
-      init_validator.validates_each *args, &block
+      @errapi_validator = ObjectValidator.new config, options, &block
     end
 
     def self.validate *args, &block
-      init_validator.validate *args, &block
-    end
-
-    private
-
-    def self.init_validator
-      @errapi_validator ||= ObjectValidator.new
+      raise "Validator has not yet been configured. You must call #configure before calling #validate." unless @errapi_validator
+      @errapi_validator.validate *args, &block
     end
   end
 end

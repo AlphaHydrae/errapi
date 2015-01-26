@@ -13,9 +13,16 @@ module Errapi
 
     module ClassMethods
 
-      def errapi name = :default, &block
+      def errapi *args, &block
+
+        options = args.last.kind_of?(Hash) ? args.pop : {}
+        config = options[:config] || Errapi.config
+        config = Errapi.config config if config.kind_of? Symbol
+
+        name = args.shift || :default
+
         @errapi_validators ||= {}
-        @errapi_validators[name] = Errapi::ObjectValidator.new(&block) if block
+        @errapi_validators[name] = Errapi::ObjectValidator.new(config, &block) if block
         @errapi_validators[name]
       end
     end

@@ -9,6 +9,10 @@ RSpec.describe Errapi::Validations::Exclusion do
     expect{ described_class.new }.to raise_error(/either :from or :in or :within/i)
   end
 
+  it "should not allow multiple options to be set" do
+    expect{ described_class.new from: %w(foo bar baz), in: %w(qux corge grault) }.to raise_error(/only one/i)
+  end
+
   it "should not accept an object without the #include? method as an option" do
     %i(in within).each do |option|
       [ nil, true, false, Object.new ].each do |invalid_option|

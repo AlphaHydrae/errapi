@@ -5,36 +5,17 @@ module Errapi::Validations
     def initialize options = {}
     end
 
-    def option_value! supplied_value, source, expectation, &block
-
-      actual_value = if supplied_value.respond_to? :call
-        supplied_value.call source
+    def actual_option_value supplied_value, options
+      if supplied_value.respond_to? :call
+        supplied_value.call options[:source]
       elsif supplied_value.respond_to? :to_sym
-        source.send supplied_value
+        unless options[:source].respond_to? supplied_value
+          raise ArgumentError, "The validation source (#{options[:source].class.name}) does not respond to :#{supplied_value}."
+        else
+          options[:source].send supplied_value
+        end
       else
         supplied_value
-      end
-
-      check_expectation! actual_value, expectation, &block
-    end
-
-    def check_callable_option_value! supplied_value, expectation, &block
-      expectation_fulfilled = apply_expectation supplied_value, expectation
-      raise ArgumentError, block.call(supplied_value) unless expectation_fulfilled || callable_option_value?(supplied_value)
-      supplied_value
-    end
-
-    def check_expectation! supplied_value, expectation, &block
-      expectation_fulfilled = apply_expectation supplied_value, expectation
-      raise ArgumentError, block.call(supplied_value) unless expectation_fulfilled
-      supplied_value
-    end
-
-    def apply_expectation value, expectation
-      if expectation.kind_of? Symbol
-        value.respond_to? expectation
-      elsif expectation.class == Class || expectation.class == Module
-        value.kind_of? expectation
       end
     end
 
@@ -42,10 +23,17 @@ module Errapi::Validations
       supplied_value.respond_to?(:call) || supplied_value.respond_to?(:to_sym)
     end
 
-    def check_exactly_one_option! keys, options, &block
+    def exactly_one_option? keys, options
       found_keys = options.keys.select{ |k| keys.include? k }
-      raise ArgumentError, block.call(found_keys) if found_keys.length != 1
-      found_keys.first
+      found_keys.length == 1 ? found_keys.first : false
+    end
+
+    def callable_option_type_error key_desc, value_desc, supplied_value
+      ArgumentError.new "The #{key_desc} option must be #{value_desc}, a proc, a lambda or a symbol, but a #{supplied_value.class.name} was given."
+    end
+
+    def callable_option_value_error key_desc, type_desc, supplied_value
+      ArgumentError.new "The call supplied to #{key_desc} must return #{type_desc}, but a #{supplied_value.class.name} was returned."
     end
   end
 

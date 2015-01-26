@@ -2,13 +2,25 @@ module Errapi::Validations
   class Format < Base
 
     def initialize options = {}
-      key = check_exactly_one_option!(OPTIONS, options){ "Either :with or :without must be supplied (but not both)." }
-      @format = check_callable_option_value!(options[key], Regexp){ |format| "The :with (or :without) option must be a regular expression, a proc, a lambda or a symbol, but a #{format.class.name} was given." }
-      @should_match = options.key? :with
+      unless key = exactly_one_option?(OPTIONS, options)
+        raise ArgumentError, "Either :with or :without must be supplied (but not both)."
+      end
+
+      @format = options[key]
+      @should_match = key == :with
+
+      unless @format.kind_of?(Regexp) or callable_option_value?(@format)
+        raise callable_option_type_error ":with (or :without)", "a regular expression", @format
+      end
     end
 
     def validate value, context, options = {}
-      regexp = option_value!(@format, options[:source], Regexp){ |format| "A regular expression must be returned from the supplied call, but a #{format.class.name} was returned." }
+
+      regexp = actual_option_value @format, options
+      unless regexp.kind_of? Regexp
+        raise callable_option_value_error ":with (or :without)", "a regular expression", regexp
+      end
+
       if !regexp.match(value.to_s) == @should_match
         context.add_error reason: :invalid_format, check_value: regexp
       end

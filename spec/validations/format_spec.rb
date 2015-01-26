@@ -25,7 +25,7 @@ RSpec.describe Errapi::Validations::Format do
     let(:validation_options){ { with: Proc.new{ 'foo' } } }
 
     it "should raise an error when validating" do
-      expect{ validate 'bar' }.to raise_error(ArgumentError, /a regular expression must be returned/i)
+      expect{ validate 'bar' }.to raise_error(ArgumentError, /must return a regular expression/i)
     end
   end
 
@@ -33,7 +33,7 @@ RSpec.describe Errapi::Validations::Format do
     let(:validation_options){ { with: :pattern } }
 
     it "should raise an error when validating" do
-      expect{ validate 'bar', source: OpenStruct.new(pattern: 'foo') }.to raise_error(ArgumentError, /a regular expression must be returned/i)
+      expect{ validate 'bar', source: OpenStruct.new(pattern: 'foo') }.to raise_error(ArgumentError, /must return a regular expression/i)
     end
   end
 

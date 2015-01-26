@@ -1,17 +1,28 @@
+require File.join(File.dirname(__FILE__), 'clusivity.rb')
+
 module Errapi::Validations
-  class Inclusion
+  class Inclusion < Base
     include Clusivity
 
     def initialize options = {}
-      @delimiter = options[:in] || options[:within]
-      check_delimiter! ":in (or :within)"
+      unless key = exactly_one_option?(OPTIONS, options)
+        raise ArgumentError, "Either :in or :within must be supplied (but not both)."
+      end
+
+      @delimiter = options[key]
+      check_delimiter! OPTIONS_DESCRIPTION
     end
 
     def validate value, context, options = {}
-      excluded_values = members options[:source]
-      unless include? excluded_values, value
-        context.add_error reason: :excluded, check_value: excluded_values
+      allowed_values = members OPTIONS_DESCRIPTION, options
+      unless include? allowed_values, value
+        context.add_error reason: :not_included, check_value: allowed_values
       end
     end
+
+    private
+
+    OPTIONS = %i(in within)
+    OPTIONS_DESCRIPTION = ":in (or :within)"
   end
 end

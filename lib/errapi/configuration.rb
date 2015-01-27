@@ -12,10 +12,29 @@ module Errapi
       @validation_factories = {}
       @condition_factories = {}
       @location_factories = {}
+      @configured = false
+      @configured_blocks = []
+    end
+
+    def configured?
+      @configured
     end
 
     def configure
-      yield self
+      raise "Configuration can only be done once." if @configured
+      yield self if block_given?
+      @configured_blocks.each{ |block| block.call }
+      @configured_blocks.clear
+      @configured = true
+      self
+    end
+
+    def on_configured &block
+      if @configured
+        block.call
+      else
+        @configured_blocks << block
+      end
     end
 
     def new_error options = {}
@@ -35,15 +54,25 @@ module Errapi
     end
 
     def plugin impl, options = {}
-      name = options[:name] || Utils.underscore(impl.to_s.sub(/.*::/, '')).to_sym
+      name = implementation_name impl, options
       impl.config = self if impl.respond_to? :config=
       @plugins[name] = impl
     end
 
+    def remove_plugin name
+      raise ArgumentError, "No plugin registered for name #{name.inspect}" unless @plugins.key? name
+      @plugins.delete name
+    end
+
     def validation_factory factory, options = {}
-      name = options[:name] || Utils.underscore(factory.to_s.sub(/.*::/, '')).to_sym
+      name = implementation_name factory, options
       factory.config = self if factory.respond_to? :config=
       @validation_factories[name] = factory
+    end
+
+    def remove_validation_factory name
+      raise ArgumentError, "No validation factory registered for name #{name.inspect}" unless @validation_factories.key? name
+      @validation_factories.delete name
     end
 
     def validation name, options = {}
@@ -52,10 +81,16 @@ module Errapi
       factory.respond_to?(:validation) ? factory.validation(options) : factory.new(options)
     end
 
-    def register_condition factory
+    def condition_factory factory
       factory.conditionals.each do |conditional|
         raise ArgumentError, "Conditional #{conditional} should start with 'if' or 'unless'." unless conditional.to_s.match /^(if|unless)/
         @condition_factories[conditional] = factory
+      end
+    end
+
+    def remove_condition_factory factory
+      factory.conditionals.each do |conditional|
+        @condition_factories.delete conditional
       end
     end
 
@@ -69,6 +104,16 @@ module Errapi
     end
 
     private
+
+    def implementation_name impl, options = {}
+      if options[:name]
+        options[:name].to_sym
+      elsif impl.respond_to? :name
+        impl.name.to_sym
+      else
+        raise ArgumentError, "Plugins and factories added to a configuration must respond to #name or be supplied with the :name option."
+      end
+    end
 
     def apply_plugins operation, *args
       @plugins.each_pair do |name,plugin|

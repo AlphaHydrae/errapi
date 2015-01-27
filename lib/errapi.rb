@@ -6,16 +6,23 @@ Dir[File.join File.dirname(__FILE__), File.basename(__FILE__, '.*'), '*.rb'].eac
 
 module Errapi
 
-  def self.configure name = nil, &block
+  def self.configure *args, &block
+
+    options = args.last.kind_of?(Hash) ? args.pop : {}
+    name = args.shift || :default
 
     init_configs
-    name ||= :default
-
     if @configs[name]
-      @configs[name].configure &block
+      raise ArgumentError, %/Configuration "#{name}" has already been configured./
     else
-      @configs[name] = Configuration.new &block
+      @configs[name] = options[:config] || Configuration.new
     end
+
+    if options.fetch :defaults, true
+      default_config! @configs[name]
+    end
+
+    @configs[name].configure &block
   end
 
   def self.config name = nil
@@ -25,23 +32,21 @@ module Errapi
   private
 
   def self.init_configs
-    @configs ? @configs : @configs = { default: default_config }
+    @configs ? @configs : @configs = {}
   end
 
-  def self.default_config
-    Configuration.new.tap do |config|
-      config.plugin Errapi::Plugins::I18nMessages
-      config.plugin Errapi::Plugins::Reason
-      config.plugin Errapi::Plugins::Location
-      config.validation_factory Errapi::Validations::Exclusion
-      config.validation_factory Errapi::Validations::Format
-      config.validation_factory Errapi::Validations::Inclusion
-      config.validation_factory Errapi::Validations::Length
-      config.validation_factory Errapi::Validations::Presence.new
-      config.validation_factory Errapi::Validations::Trim
-      config.validation_factory Errapi::Validations::Type
-      config.register_condition Errapi::Condition::SimpleCheck
-      config.register_condition Errapi::Condition::ErrorCheck
-    end
+  def self.default_config! config
+    config.plugin Errapi::Plugins::I18nMessages.new
+    config.plugin Errapi::Plugins::Reason.new
+    config.plugin Errapi::Plugins::Location.new
+    config.validation_factory Errapi::Validations::Exclusion::Factory.new
+    config.validation_factory Errapi::Validations::Format::Factory.new
+    config.validation_factory Errapi::Validations::Inclusion::Factory.new
+    config.validation_factory Errapi::Validations::Length::Factory.new
+    config.validation_factory Errapi::Validations::Presence::Factory.new
+    config.validation_factory Errapi::Validations::Trim::Factory.new
+    config.validation_factory Errapi::Validations::Type::Factory.new
+    config.condition_factory Errapi::Condition::SimpleCheck
+    config.condition_factory Errapi::Condition::ErrorCheck
   end
 end

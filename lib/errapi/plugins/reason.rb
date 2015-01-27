@@ -1,22 +1,22 @@
-module Errapi
-  class Plugins::Reason
-    class << self
-      attr_writer :config
-      attr_accessor :camelize
+module Errapi::Plugins
+  class Reason < Base
+    plugin_name :reason
 
-      def serialize_error error, serialized
-        serialized[:reason] = serialized_reason error
-      end
+    attr_writer :config
+    attr_accessor :camelize
 
-      private
+    def serialize_error error, serialized
+      serialized[:reason] = serialized_reason error
+    end
 
-      def serialized_reason error
-        camelize? ? Utils.camelize(error.reason.to_s).to_sym : error.reason
-      end
+    private
 
-      def camelize?
-        @camelize.nil? ? @config.options.camelize : @camelize
-      end
+    def serialized_reason error
+      camelize? ? Utils.camelize(error.reason.to_s).to_sym : error.reason
+    end
+
+    def camelize?
+      @camelize.nil? ? @config.options.camelize : @camelize
     end
   end
 end

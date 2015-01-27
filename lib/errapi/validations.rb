@@ -1,3 +1,5 @@
+require File.join(File.dirname(__FILE__), 'utils.rb')
+
 module Errapi::Validations
 
   class Base
@@ -37,7 +39,28 @@ module Errapi::Validations
     end
   end
 
-  class Factory
+  class ValidationFactory
+
+    def self.build impl, options = {}
+      @validation_class = impl
+      @name = options[:name] || Errapi::Utils.underscore(impl.to_s.sub(/.*::/, '')).to_sym
+    end
+
+    def self.name
+      @name
+    end
+
+    def name
+      self.class.name
+    end
+
+    def self.validation_class
+      @validation_class
+    end
+
+    def validation_class
+      self.class.validation_class
+    end
 
     def config= config
       raise "A configuration has already been set for this factory." if @config
@@ -45,11 +68,7 @@ module Errapi::Validations
     end
 
     def validation options = {}
-      self.class.const_get('Implementation').new options
-    end
-
-    def to_s
-      Errapi::Utils.underscore self.class.name.sub(/.*::/, '')
+      validation_class.new options
     end
   end
 end

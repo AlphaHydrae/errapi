@@ -1,5 +1,9 @@
 module Errapi::Validations
   class Length < Base
+    class Factory < ValidationFactory
+      build Length
+    end
+
     CHECKS = { is: :==, minimum: :>=, maximum: :<= }.freeze
     REASONS = { is: :wrong_length, minimum: :too_short, maximum: :too_long }.freeze
 

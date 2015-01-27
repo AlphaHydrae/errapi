@@ -5,14 +5,18 @@ module Errapi
   class ObjectValidator
     include LocationBuilders
 
+    # TODO: remove "options" or if used, pass them to new validators instantiated in #register_validations
     def initialize config, options = {}, &block
-      # TODO: remove these options or if used, pass them to new validators instantiated in #register_validations
       @config = config
       @validations = []
-      instance_eval &block if block
+
+      @config.on_configured do
+        instance_eval &block if block
+      end
     end
 
     def validates *args, &block
+      check_config!
       register_validations *args, &block
     end
 
@@ -27,6 +31,7 @@ module Errapi
     end
 
     def validate value, context, options = {}
+      check_config!
       # TODO: skip validation by default if previous errors at current location
       # TODO: add support for previous value and skip validation by default if value is unchanged
 
@@ -184,6 +189,10 @@ module Errapi
       validations_definition[:targets] = args.empty? ? [ nil ] : args
 
       @validations << validations_definition
+    end
+
+    def check_config!
+      raise "Configuration has not been done. You must call Errapi.config to complete the configuration process." unless @config.configured?
     end
 
     class ContextProxy

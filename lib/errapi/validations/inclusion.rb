@@ -2,6 +2,10 @@ require File.join(File.dirname(__FILE__), 'clusivity.rb')
 
 module Errapi::Validations
   class Inclusion < Base
+    class Factory < ValidationFactory
+      build Inclusion
+    end
+
     include Clusivity
 
     def initialize options = {}

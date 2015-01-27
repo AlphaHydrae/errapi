@@ -1,5 +1,8 @@
 module Errapi::Validations
   class Type < Base
+    class Factory < ValidationFactory
+      build Type
+    end
 
     def initialize options = {}
       unless key = exactly_one_option?(OPTIONS, options)

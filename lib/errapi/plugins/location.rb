@@ -1,29 +1,29 @@
-module Errapi
-  class Plugins::Location
-    class << self
-      attr_writer :config
-      attr_accessor :camelize
+module Errapi::Plugins
+  class Location < Base
+    plugin_name :location
 
-      def serialize_error error, serialized
-        if error.location && error.location.respond_to?(:serialize)
+    attr_writer :config
+    attr_accessor :camelize
 
-          serialized_location = error.location.serialize
-          unless serialized_location.nil?
-            serialized[:location] = serialized_location
-            serialized[location_type_key] = error.location.location_type if error.location.respond_to? :location_type
-          end
+    def serialize_error error, serialized
+      if error.location && error.location.respond_to?(:serialize)
+
+        serialized_location = error.location.serialize
+        unless serialized_location.nil?
+          serialized[:location] = serialized_location
+          serialized[location_type_key] = error.location.location_type if error.location.respond_to? :location_type
         end
       end
+    end
 
-      private
+    private
 
-      def location_type_key
-        camelize? ? :locationType : :location_type
-      end
+    def location_type_key
+      camelize? ? :locationType : :location_type
+    end
 
-      def camelize?
-        @camelize.nil? ? @config.options.camelize : @camelize
-      end
+    def camelize?
+      @camelize.nil? ? @config.options.camelize : @camelize
     end
   end
 end

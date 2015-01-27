@@ -4,6 +4,10 @@ RSpec.describe 'errapi' do
   let(:config){ Errapi.config }
   let(:context){ config.new_context }
 
+  before :all do
+    Errapi.configure
+  end
+
   it "should collect and find errors" do
 
     context.add_error reason: 'foo'

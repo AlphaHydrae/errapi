@@ -1,8 +1,9 @@
 require 'i18n'
 
 # TODO: support interpolating source and target name (e.g. "Project name cannot be null.")
-class Errapi::Plugins::I18nMessages
-  class << self
+module Errapi::Plugins
+  class I18nMessages < Base
+    plugin_name :message
 
     def serialize_error error, serialized
       return if serialized.key? :message

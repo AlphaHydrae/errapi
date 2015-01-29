@@ -2,6 +2,7 @@ require 'ostruct'
 
 class Errapi::ValidationError
   attr_accessor :reason
+  # TODO: add value to error
   attr_accessor :check_value
   attr_accessor :checked_value
   attr_accessor :validation

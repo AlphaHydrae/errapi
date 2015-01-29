@@ -4,23 +4,15 @@ module Errapi::Validations
       build Numericality
     end
 
-    CHECKS = { greater_than: :>, greater_than_or_equal_to: :>=,
-               equal_to: :==, less_than: :<, less_than_or_equal_to: :<=,
-               odd: :odd?, even: :even?, other_than: :!= }
-
-    OPTIONS = CHECKS.keys + %i(only_integer)
-    NUMERIC_OPTIONS = CHECKS.keys - %i(odd even)
-
-    REASONS = { greater_than: :not_greater_than, greater_than_or_equal_to: :not_greater_than_or_equal_to,
-                equal_to: :not_equal_to, less_than: :not_less_than, less_than_or_equal_to: :not_less_than_or_equal_to,
-                odd: :not_odd, even: :not_even, other_than: :not_other_than, only_integer: :not_an_integer }
-
     def initialize options = {}
 
       keys = options.keys.select{ |k| OPTIONS.include? k }
       if keys.empty?
         raise ArgumentError, "At least one option of #{OPTIONS.collect{ |o| ":#{o}" }.join(', ')} must be supplied."
       end
+
+      # TODO: force only_integer with odd/even
+      # TODO: forbid any option combination with equal_to/other_than
 
       NUMERIC_OPTIONS.each do |key|
         value = options[key]
@@ -34,13 +26,22 @@ module Errapi::Validations
 
     def validate value, context, options = {}
       return unless value.kind_of? Numeric
+      # TODO: support strings
 
-      keys = CHECKS.keys.select{ |k| @constraints.key? k }
+      keys = OPTIONS.select{ |k| @constraints.key? k }
 
       actual_constraints = keys.inject({}) do |memo,key|
         memo[key] = actual_check_value key, @constraints[key], options
         memo
       end
+
+      if actual_constraints[:only_integer] && !value.kind_of?(Integer)
+        context.add_error reason: :not_an_integer, constraints: actual_constraints
+        return
+      end
+
+      # TODO: raise error if bounds are inconsistent (e.g. upper bound less than lower bound, odd and even)
+      # TODO: rever odd/even check if check value is false
 
       CHECKS.each_pair do |key,check|
         next unless check_value = actual_constraints[key]
@@ -51,11 +52,18 @@ module Errapi::Validations
           next if value.send check
         end
 
-        context.add_error reason: REASONS[key], check_value: check_value, checked_value: value, constraints: actual_constraints
+        context.add_error reason: "not_#{key}".to_sym, check_value: check_value, checked_value: value, constraints: actual_constraints
       end
     end
 
     private
+
+    CHECKS = { greater_than: :>, greater_than_or_equal_to: :>=,
+               equal_to: :==, less_than: :<, less_than_or_equal_to: :<=,
+               odd: :odd?, even: :even?, other_than: :!= }
+
+    OPTIONS = CHECKS.keys + %i(only_integer)
+    NUMERIC_OPTIONS = CHECKS.keys - %i(odd even)
 
     def actual_check_value key, value, options
       actual_value = actual_option_value value, options

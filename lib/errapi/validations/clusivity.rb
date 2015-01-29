@@ -2,8 +2,6 @@ module Errapi::Validations
   module Clusivity
     private
 
-    DELIMITER_METHOD_CHECKS = %i(include? call to_sym).freeze
-
     def check_delimiter! option_desc
       unless @delimiter.respond_to?(:include?) || callable_option_value?(@delimiter)
         raise callable_option_type_error option_desc, "an object with the #include? method", @delimiter

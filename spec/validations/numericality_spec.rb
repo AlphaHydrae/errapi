@@ -206,58 +206,76 @@ RSpec.describe Errapi::Validations::Numericality do
 
   describe "with the :only_integer option" do
     shared_examples_for "an integer check" do
-      let(:runtime_options){ {} }
-
-      shared_examples_for "the check" do
-        it "should not accept non-integers" do
-          invalid_numbers.each.with_index do |n,i|
-            validate n, runtime_options
-            expect(context).to have_received(:add_error).with(reason: :not_an_integer, constraints: { only_integer: check_value }).exactly(i + 1).times
-          end
-        end
-
-        it "should accept integers" do
-          valid_numbers.each do |n|
-            validate n, runtime_options
-            expect(context).not_to have_received(:add_error)
-          end
+      it "should not accept non-integers" do
+        invalid_numbers.each.with_index do |n,i|
+          validate n, runtime_options
+          expect(context).to have_received(:add_error).with(reason: :not_an_integer, constraints: { only_integer: check_value }).exactly(i + 1).times
         end
       end
 
-      describe "as a boolean" do
-        let(:validation_options){ { only_integer: check_value } }
-        it_should_behave_like "the check"
-      end
-
-      describe "as a callable" do
-        let(:validation_options){ { only_integer: ->(source){ source.foo } } }
-        let(:runtime_options){ { source: OpenStruct.new(foo: check_value) } }
-        it_should_behave_like "the check"
-      end
-
-      describe "as a symbol" do
-        let(:validation_options){ { only_integer: :bar } }
-        let(:runtime_options){ { source: OpenStruct.new(bar: check_value) } }
-        it_should_behave_like "the check"
+      it "should accept integers" do
+        valid_numbers.each do |n|
+          validate n, runtime_options
+          expect(context).not_to have_received(:add_error)
+        end
       end
     end
 
-    describe "set to true" do
+    shared_examples_for "a disabled integer check" do
+      it "should accept integers and non-integers" do
+        sample_numbers.each do |n|
+          validate n, runtime_options
+          expect(context).not_to have_received(:add_error)
+        end
+      end
+    end
+
+    describe "as a boolean set to true" do
       let(:check_value){ true }
       let(:invalid_numbers){ sample_numbers.reject &:integer? }
       let(:valid_numbers){ sample_numbers.select &:integer? }
+      let(:validation_options){ { only_integer: check_value } }
+      let(:runtime_options){ {} }
       it_should_behave_like "an integer check"
     end
 
-    describe "set to false" do
-      let(:check_value){ false }
-      let(:invalid_numbers){ [] }
-      let(:valid_numbers){ sample_numbers }
+    describe "as a callable returning true" do
+      let(:check_value){ true }
+      let(:invalid_numbers){ sample_numbers.reject &:integer? }
+      let(:valid_numbers){ sample_numbers.select &:integer? }
+      let(:validation_options){ { only_integer: ->(source){ source.foo } } }
+      let(:runtime_options){ { source: OpenStruct.new(foo: check_value) } }
       it_should_behave_like "an integer check"
+    end
+
+    describe "as a symbol returning true" do
+      let(:check_value){ true }
+      let(:invalid_numbers){ sample_numbers.reject &:integer? }
+      let(:valid_numbers){ sample_numbers.select &:integer? }
+      let(:validation_options){ { only_integer: :bar } }
+      let(:runtime_options){ { source: OpenStruct.new(bar: check_value) } }
+      it_should_behave_like "an integer check"
+    end
+
+    describe "as a boolean set to false" do
+      let(:validation_options){ { only_integer: false } }
+      let(:runtime_options){ {} }
+      it_should_behave_like "a disabled integer check"
+    end
+
+    describe "as a callable returning false" do
+      let(:validation_options){ { only_integer: ->(source){ source.foo } } }
+      let(:runtime_options){ { source: OpenStruct.new(foo: false) } }
+      it_should_behave_like "a disabled integer check"
+    end
+
+    describe "as a symbol returning false" do
+      let(:validation_options){ { only_integer: :bar } }
+      let(:runtime_options){ { source: OpenStruct.new(bar: false) } }
+      it_should_behave_like "a disabled integer check"
     end
   end
 
-  # TODO: check that integer check is not performed if only_integer is false
   # TODO: check that other checks are not performed if only_integer fails
 
   def validate value, options = {}

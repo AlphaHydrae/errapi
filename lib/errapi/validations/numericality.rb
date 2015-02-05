@@ -6,13 +6,20 @@ module Errapi::Validations
 
     def initialize options = {}
 
+      # TODO: make checks work with callable options
+
       keys = options.keys.select{ |k| OPTIONS.include? k }
       if keys.empty?
         raise ArgumentError, "At least one option of #{OPTIONS.collect{ |o| ":#{o}" }.join(', ')} must be supplied."
+      elsif keys.length >= 2 && (keys.include?(:equal_to) || keys.include?(:other_than))
+        raise ArgumentError, "The :equal_to or :other_than options cannot be combined with other options or used together."
+      elsif !keys.include?(:only_integer) && (keys.include?(:odd) || keys.include?(:even))
+        raise ArgumentError, "The :odd and :even options require the :only_integer option to be set."
+      elsif keys.include?(:greater_than) && keys.include?(:greater_than_or_equal_to)
+        raise ArgumentError, "The :greater_than and :greater_than_or_equal_to options cannot be combined."
+      elsif keys.include?(:less_than) && keys.include?(:less_than_or_equal_to)
+        raise ArgumentError, "The :less_than and :less_than_or_equal_to options cannot be combined."
       end
-
-      # TODO: force only_integer with odd/even
-      # TODO: forbid any option combination with equal_to/other_than
 
       NUMERIC_OPTIONS.each do |key|
         value = options[key]
@@ -41,7 +48,7 @@ module Errapi::Validations
       end
 
       # TODO: raise error if bounds are inconsistent (e.g. upper bound less than lower bound, odd and even)
-      # TODO: rever odd/even check if check value is false
+      # TODO: reverse odd/even check if check value is false
 
       CHECKS.each_pair do |key,check|
         next unless check_value = actual_constraints[key]

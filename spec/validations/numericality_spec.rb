@@ -4,21 +4,45 @@ RSpec.describe Errapi::Validations::Numericality do
   let(:context){ double add_error: nil }
   let(:validation_options){ {} }
   let(:sample_numbers){ [ -2000, -999.99, -10, -6.3, -1, -0.24, 0, 0.42, 1, 4.7, 9, 9.9, 10, 10.0001, 20, 1000.01, 2000 ] } # should contain no duplicates
+  let(:option_names){ %i(greater_than greater_than_or_equal_to equal_to less_than less_than_or_equal_to odd even other_than only_integer) }
   subject{ described_class.new validation_options }
 
   it "should require at least one option to be set" do
     expect{ described_class.new }.to raise_error(ArgumentError, /at least one option/i)
   end
 
+  it "should not allow other options to be combined with :equal_to or :other_than" do
+    %i(other_than equal_to).each do |option|
+      option_names.tap{ |n| n.delete option }.each do |invalid_option|
+        expect{ described_class.new({ option => 10, invalid_option => 20 }) }.to raise_error(ArgumentError, /cannot be combined/)
+      end
+    end
+  end
+
+  it "should not allow the :odd and :even options to be used without :only_integer" do
+    %i(odd even).each do |option|
+      expect{ described_class.new({ option => true }) }.to raise_error(ArgumentError, /require the :only_integer option/)
+    end
+  end
+
+  it "should not allow the :greater_than and :greater_than_or_equal_to options to be combined" do
+    expect{ described_class.new(greater_than: 10, greater_than_or_equal_to: 20) }.to raise_error(ArgumentError, /cannot be combined/)
+  end
+
+  it "should not allow the :less_than and :less_than_or_equal_to options to be combined" do
+    expect{ described_class.new(less_than: 10, less_than_or_equal_to: 20) }.to raise_error(ArgumentError, /cannot be combined/)
+  end
+
   shared_examples_for "a numerical comparison with one option" do
     let(:runtime_options){ {} }
+    let(:additional_validation_options){ super() rescue {} }
     let(:error_reason){ "not_#{validation_option}".to_sym }
 
     shared_examples_for "the comparison" do
       it "should not accept numbers that do not match the option" do
         invalid_numbers.each do |n|
           validate n, runtime_options
-          expect(context).to have_received(:add_error).with(reason: error_reason, check_value: validation_option_value, checked_value: n, constraints: { validation_option => validation_option_value })
+          expect(context).to have_received(:add_error).with(reason: error_reason, check_value: validation_option_value, checked_value: n, constraints: { validation_option => validation_option_value }.merge(additional_validation_options))
         end
       end
 
@@ -31,18 +55,18 @@ RSpec.describe Errapi::Validations::Numericality do
     end
 
     describe "as a number" do
-      let(:validation_options){ { validation_option => validation_option_value } }
+      let(:validation_options){ { validation_option => validation_option_value }.merge(additional_validation_options) }
       it_should_behave_like "the comparison"
     end
 
     describe "as a callable" do
-      let(:validation_options){ { validation_option => ->(source){ source.bound } } }
+      let(:validation_options){ { validation_option => ->(source){ source.bound } }.merge(additional_validation_options) }
       let(:runtime_options){ { source: OpenStruct.new(bound: validation_option_value) } }
       it_should_behave_like "the comparison"
     end
 
     describe "as a symbol" do
-      let(:validation_options){ { validation_option => :bound } }
+      let(:validation_options){ { validation_option => :bound }.merge(additional_validation_options) }
       let(:runtime_options){ { source: OpenStruct.new(bound: validation_option_value) } }
       it_should_behave_like "the comparison"
     end
@@ -147,6 +171,7 @@ RSpec.describe Errapi::Validations::Numericality do
   describe "with the :odd option" do
     let(:validation_option){ :odd }
     let(:validation_option_value){ true }
+    let(:additional_validation_options){ { only_integer: true } }
     let(:invalid_numbers){ sample_numbers.select{ |n| n.integer? && n.even? } }
     let(:valid_numbers){ sample_numbers.select{ |n| n.integer? && n.odd? } }
     it_should_behave_like "a numerical comparison with one option"
@@ -155,6 +180,7 @@ RSpec.describe Errapi::Validations::Numericality do
   describe "with the :even option" do
     let(:validation_option){ :even }
     let(:validation_option_value){ true }
+    let(:additional_validation_options){ { only_integer: true } }
     let(:invalid_numbers){ sample_numbers.select{ |n| n.integer? && n.odd? } }
     let(:valid_numbers){ sample_numbers.select{ |n| n.integer? && n.even? } }
     it_should_behave_like "a numerical comparison with one option"

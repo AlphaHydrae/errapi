@@ -12,7 +12,7 @@ module Errapi::Plugins
     private
 
     def serialized_reason error
-      camelize? ? Utils.camelize(error.reason.to_s).to_sym : error.reason
+      camelize? ? Errapi::Utils.camelize(error.reason.to_s).to_sym : error.reason
     end
 
     def camelize?

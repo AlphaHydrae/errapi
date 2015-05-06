@@ -179,9 +179,18 @@ module Errapi
 
       validations.each do |validation_name,options|
         next unless options
-        validation_options = options.kind_of?(Hash) ? options : {}
-        validation_target_alias = validation_options.delete(:as) || target_alias
-        conditions = @config.extract_conditions! validation_options
+
+        validation_options = options
+        conditions = []
+        validation_target_alias = nil
+
+        if validation_options.kind_of? Hash
+          validation_target_alias = validation_options.delete(:as)
+          conditions = @config.extract_conditions! validation_options
+        end
+
+        validation_target_alias ||= target_alias
+
         validation = @config.validation validation_name, validation_options
         validations_definition[:validations] << { validation: validation, validation_name: validation_name, validation_options: validation_options, target_alias: validation_target_alias, conditions: conditions }
       end

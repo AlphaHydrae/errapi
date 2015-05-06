@@ -62,12 +62,30 @@ module Errapi::Validations
       self.class.validation_class
     end
 
+    def self.default_option key = nil
+      @default_option = key unless key.nil?
+      @default_option
+    end
+
+    def default_option
+      self.class.default_option
+    end
+
     def config= config
       raise "A configuration has already been set for this factory." if @config
       @config = config
     end
 
     def validation options = {}
+
+      options = if options.kind_of? Hash
+        options
+      elsif options && respond_to?(:default_option) && default_option
+        {}.tap{ |h| h[default_option] = options }
+      else
+        {}
+      end
+
       validation_class.new options
     end
   end

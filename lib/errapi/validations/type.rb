@@ -2,6 +2,7 @@ module Errapi::Validations
   class Type < Base
     class Factory < ValidationFactory
       build Type
+      default_option :kind_of
     end
 
     def initialize options = {}
@@ -18,6 +19,8 @@ module Errapi::Validations
     end
 
     def validate value, context, options = {}
+      return if value.nil?
+
       if @instance_of && @instance_of.none?{ |type| value.instance_of? type }
         context.add_error reason: :wrong_type, check_value: @instance_of, checked_value: value.class
       elsif @kind_of && @kind_of.none?{ |type| value.kind_of? type }
@@ -50,8 +53,7 @@ module Errapi::Validations
       integer: [ Integer ],
       boolean: [ TrueClass, FalseClass ],
       object: [ Hash ],
-      array: [ Array ],
-      null: [ NilClass ]
+      array: [ Array ]
     }
   end
 end

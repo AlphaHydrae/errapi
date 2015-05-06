@@ -2,6 +2,7 @@ module Errapi::Validations
   class Length < Base
     class Factory < ValidationFactory
       build Length
+      default_option :maximum
     end
 
     CHECKS = { is: :==, minimum: :>=, maximum: :<= }.freeze

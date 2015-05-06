@@ -2,7 +2,7 @@ require 'helper'
 
 RSpec.describe Errapi::Validations::Type do
   SPEC_TYPE_VALIDATION_OPTIONS = %i(instance_of kind_of is_a is_an)
-  SPEC_TYPE_VALIDATION_ALIASES = %i(string number integer boolean object array null)
+  SPEC_TYPE_VALIDATION_ALIASES = %i(string number integer boolean object array)
   let(:context){ double add_error: nil }
   let(:validation_options){ {} }
   let(:type){ Array }
@@ -41,7 +41,7 @@ RSpec.describe Errapi::Validations::Type do
 
   describe "with the :instance_of option" do
     let(:types_wrapper){ [*types] }
-    let(:invalid_values){ [ nil, true, 'abc' ] }
+    let(:invalid_values){ [ 2, true, 'abc' ] }
     let(:validation_options){ { instance_of: types } }
 
     shared_examples_for "an exact type match" do
@@ -85,7 +85,7 @@ RSpec.describe Errapi::Validations::Type do
 
   shared_examples_for "a comparison that allows subtypes" do
     let(:types_wrapper){ [*types] }
-    let(:invalid_values){ [ nil, true, 'abc' ] }
+    let(:invalid_values){ [ 2, true, 'abc' ] }
     let(:validation_options){ { type_option => types } }
 
     shared_examples_for "a lenient type match" do
@@ -148,9 +148,9 @@ RSpec.describe Errapi::Validations::Type do
 
   describe "type aliases" do
     let(:aliases){ %i(string number integer boolean object array null) }
-    let(:sample_values){ { string: 'abc', number: 4.5, integer: 3, boolean: false, object: { foo: 'bar' }, array: [ 1, 2, 3 ], null: nil } }
+    let(:sample_values){ { string: 'abc', number: 4.5, integer: 3, boolean: false, object: { foo: 'bar' }, array: [ 1, 2, 3 ] } }
     let(:special_cases){ { number: [ :integer ] } } # number is a superset of integer
-    let(:corresponding_types){ { string: [ String ], number: [ Numeric ], integer: [ Integer ], boolean: [ TrueClass, FalseClass ], object: [ Hash ], array: [ Array ], null: [ NilClass ] } }
+    let(:corresponding_types){ { string: [ String ], number: [ Numeric ], integer: [ Integer ], boolean: [ TrueClass, FalseClass ], object: [ Hash ], array: [ Array ] } }
 
     SPEC_TYPE_VALIDATION_ALIASES.each do |type_alias|
       describe type_alias.to_s do

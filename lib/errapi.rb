@@ -43,6 +43,7 @@ module Errapi
     config.validation_factory Errapi::Validations::Format::Factory.new
     config.validation_factory Errapi::Validations::Inclusion::Factory.new
     config.validation_factory Errapi::Validations::Length::Factory.new
+    config.validation_factory Errapi::Validations::Numericality::Factory.new
     config.validation_factory Errapi::Validations::Presence::Factory.new
     config.validation_factory Errapi::Validations::Trim::Factory.new
     config.validation_factory Errapi::Validations::Type::Factory.new

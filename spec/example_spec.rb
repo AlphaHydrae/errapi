@@ -203,6 +203,27 @@ RSpec.describe 'errapi' do
     expect(context.errors).to have(2).items
   end
 
+  it "should provide default validation options" do
+
+    h = {
+      foo: 'bar',
+      bar: {}
+    }
+
+    validations = Errapi::ObjectValidator.new config do
+
+      validates :foo, length: 2
+      validates :bar, type: :array
+    end
+
+    validations.validate h, context, location_type: :dotted
+
+    expect(context.errors?).to be(true)
+    expect(context.errors?(location: 'foo')).to be(true)
+    expect(context.errors?(location: 'bar')).to be(true)
+    expect(context.errors).to have(2).items
+  end
+
   it "should serialize errors" do
 
     h = {

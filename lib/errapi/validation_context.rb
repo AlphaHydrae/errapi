@@ -1,48 +1,68 @@
 require 'ostruct'
 
-class Errapi::ValidationContext
-  attr_reader :data
-  attr_reader :errors
-  attr_reader :config
+module Errapi
+  class ValidationContext
+    attr_reader :data
+    attr_reader :errors
+    attr_reader :plugins
 
-  def initialize options = {}
-    @errors = []
-    @data = OpenStruct.new options[:data] || {}
-    @config = options[:config]
-  end
+    def initialize options = {}
+      @errors = []
+      @data = OpenStruct.new options[:data] || {}
+      @plugins = options[:plugins] || []
+    end
 
-  def add_error options = {}, &block
+    def new_error options = {}
+      # TODO: allow this to be configured
+      OpenStruct.new options
+    end
 
-    error = options.kind_of?(Errapi::ValidationError) ? options : @config.new_error(options)
-    yield error if block_given?
-    @config.build_error error, self
+    def add_error options = {}, &block
 
-    @errors << error
-    self
-  end
+      error = new_error options
 
-  def errors? criteria = {}, &block
-    return !@errors.empty? if criteria.empty? && !block
-    block ? @errors.any?{ |err| err.matches?(criteria) && block.call(err) } : @errors.any?{ |err| err.matches?(criteria) }
-  end
+      @plugins.each do |plugin|
+        plugin.build_error error, self if plugin.respond_to? :build_error
+      end
 
-  def valid?
-    !errors?
-  end
+      yield error if block_given?
 
-  def clear
-    @errors.clear
-    @data = OpenStruct.new
-  end
+      @errors << error
+      self
+    end
 
-  # TODO: add custom serialization options
-  def serialize
-    # TODO: add hook for plugins to serialize context
-    { errors: [] }.tap do |h|
-      @errors.each do |error|
-        serialized = {}
-        @config.serialize_error error, serialized
-        h[:errors] << serialized
+    def errors? criteria = {}, &block
+      return !@errors.empty? if criteria.empty? && !block
+      block ? @errors.any?{ |err| error_matches_criteria?(error, criteria) && block.call(err) } : @errors.any?{ |err| error_matches_criteria?(criteria) }
+    end
+
+    def valid?
+      !errors?
+    end
+
+    def clear
+      @errors.clear
+      @data = OpenStruct.new
+    end
+
+    private
+
+    # TODO: allow error matching to be configured
+    def error_matches_criteria? error, criteria = {}
+      criteria.all?{ |attr,criterion| error_attribute_matches_criterion? error, attr, criterion }
+    end
+
+    def error_attribute_matches_criterion? error, attr, criterion
+      value = error[attr]
+
+      if criterion.kind_of? Regexp
+        !!criterion.match(value.to_s)
+      elsif criterion.kind_of? String
+        criterion == value.to_s
+      elsif criterion.respond_to? :===
+        criterion === value
+      else
+        criterion == value
       end
     end
   end

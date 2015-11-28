@@ -33,7 +33,7 @@ module Errapi
 
     def errors? criteria = {}, &block
       return !@errors.empty? if criteria.empty? && !block
-      block ? @errors.any?{ |err| error_matches_criteria?(error, criteria) && block.call(err) } : @errors.any?{ |err| error_matches_criteria?(criteria) }
+      block ? @errors.any?{ |err| error_matches_criteria?(err, criteria) && block.call(err) } : @errors.any?{ |err| error_matches_criteria?(err, criteria) }
     end
 
     def valid?
@@ -59,6 +59,10 @@ module Errapi
         !!criterion.match(value.to_s)
       elsif criterion.kind_of? String
         criterion == value.to_s
+      elsif criterion.kind_of? Symbol
+        criterion == value
+      elsif criterion.respond_to? :match
+        !!criterion.match(value)
       elsif criterion.respond_to? :===
         criterion === value
       else

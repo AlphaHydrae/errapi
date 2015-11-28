@@ -30,6 +30,8 @@ Dir[File.dirname(__FILE__) + "/support/**/*.rb"].each{ |f| require f }
 # See http://rubydoc.info/gems/rspec-core/RSpec/Core/Configuration
 RSpec.configure do |config|
 
+  config.include ValidationGenerators
+
   # These two settings work together to allow you to limit a spec run
   # to individual examples or groups you care about by tagging them with
   # `:focus` metadata. When nothing is tagged with `:focus`, all examples
@@ -88,9 +90,9 @@ RSpec.configure do |config|
   end
 
   config.before :suite do
-    I18n.load_path = [ File.expand_path(File.join(File.dirname(__FILE__), '..', 'locales', 'en.yml')) ]
-    I18n.locale = :en
-    I18n.default_locale = :en
+    #I18n.load_path = [ File.expand_path(File.join(File.dirname(__FILE__), '..', 'locales', 'en.yml')) ]
+    #I18n.locale = :en
+    #I18n.default_locale = :en
   end
 end
 

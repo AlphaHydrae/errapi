@@ -1,7 +1,10 @@
 require 'ostruct'
+require File.join(File.dirname(__FILE__), 'plugin_system.rb')
 
 module Errapi
   class ValidationContext
+    include PluginSystem
+
     attr_reader :data
     attr_reader :errors
     attr_reader :plugins
@@ -9,7 +12,7 @@ module Errapi
     def initialize options = {}
       @errors = []
       @data = OpenStruct.new options[:data] || {}
-      @plugins = options[:plugins] || []
+      initialize_plugins options
     end
 
     def new_error options = {}
@@ -21,9 +24,7 @@ module Errapi
 
       error = new_error options
 
-      @plugins.each do |plugin|
-        plugin.build_error error, self if plugin.respond_to? :build_error
-      end
+      call_plugins :build_error, error, self
 
       yield error if block_given?
 

@@ -1,8 +1,13 @@
+require File.join(File.dirname(__FILE__), 'plugin_system.rb')
+
 module Errapi
   class ObjectValidator
+    include PluginSystem
+
     def initialize options = {}, &block
       @validation_groups = []
       @registry = options[:registry]
+      initialize_plugins options
 
       raise "A validation registry must be supplied with the :registry option" unless @registry
 

@@ -1,5 +1,8 @@
+require File.join(File.dirname(__FILE__), 'plugin_system.rb')
+
 module Errapi
   class ObjectValidator
+
     def initialize options = {}, &block
       @target_validation_groups = []
       @registry = options[:registry]

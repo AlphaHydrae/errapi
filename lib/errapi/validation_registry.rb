@@ -22,8 +22,14 @@ module Errapi
       factory.respond_to?(:validation) ? factory.validation(options) : factory.new(options)
     end
 
-    def validate value, context, name, options = {}, runtime_options = {}
-      validation(name, options).validate value, context, runtime_options
+    def validations options = {}
+
+      vals = []
+      options.each_pair do |name,options|
+        vals << validation(name, options)
+      end
+
+      ValidationGroup.new vals
     end
 
     private

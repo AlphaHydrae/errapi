@@ -1,8 +1,9 @@
 module Errapi
   class ObjectValidator
     def initialize options = {}, &block
-      @validation_groups = []
+      @target_validation_groups = []
       @registry = options[:registry]
+      @navigator = Errapi::Plugins::Navigator.new
 
       raise "A validation registry must be supplied with the :registry option" unless @registry
 
@@ -13,66 +14,42 @@ module Errapi
       options = args.last.kind_of?(Hash) ? args.pop : {}
 
       target = args.shift
-      group = ValidationGroup.new target
 
-      options.each_pair do |name,options|
-        validation = @registry.validation name, options
-        group.add validation
-      end
+      validations = @registry.validations options
 
       if block
-        group.add ObjectValidator.new(registry: @registry, &block)
+        validations.validations << ObjectValidator.new(registry: @registry, &block)
       end
 
-      @validation_groups << group
+      @target_validation_groups << TargetValidationGroup.new(target, validations)
 
       self
     end
 
     def validate value, context, options = {}
-      @validation_groups.each do |group|
-        group.validate value, context, options
+      context.plugins << @navigator
+
+      @target_validation_groups.each do |group|
+        @navigator.navigate @target do
+          @navigator.validate group, context, options
+        end
       end
+
+      context.plugins.delete @navigator
     end
 
     private
 
-    class ValidationGroup
-      attr_reader :validations
+    class TargetValidationGroup
+      attr_reader :target
 
-      def initialize target
+      def initialize target, validations
         @target = target
-        @validations = []
-      end
-
-      def add validation
-        @validations << validation
+        @validations = validations
       end
 
       def validate value, context, options = {}
-        return unless has? value, @target
-
-        target_value = extract value, @target
-
-        @validations.each do |validation|
-          validation.validate target_value, context, options
-        end
-      end
-
-      def has? value, target
-        target.nil? || target.respond_to?(:call) || value.kind_of?(Hash) || value.respond_to?(target)
-      end
-
-      def extract value, target
-        if target.nil?
-          value
-        elsif target.respond_to? :call
-          target.call value
-        elsif value.kind_of? Hash
-          value[target]
-        elsif value.respond_to? target
-          value.send target
-        end
+        @validations.validate value, context, options
       end
     end
   end

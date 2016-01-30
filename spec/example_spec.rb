@@ -1,7 +1,7 @@
 require 'helper'
 
 RSpec.describe 'errapi' do
-  let(:context){ Errapi::ValidationContext.new }
+  let(:context){ new_context }
 
   let :presence_validation_factory do
     presence = generate_validation do |value,context,options|
@@ -9,6 +9,14 @@ RSpec.describe 'errapi' do
     end
 
     generate_validation_factory :presence, presence
+  end
+
+  let :custom_validation_factory do
+    custom = generate_validation do |value,context,options|
+      context.add_error @validation_options.dup
+    end
+
+    generate_validation_factory :custom, custom
   end
 
   it "should collect and find errors" do
@@ -24,7 +32,7 @@ RSpec.describe 'errapi' do
   it "should register validations" do
 
     registry = Errapi::ValidationRegistry.new
-    registry.add_validation_factory Errapi::Validations::Presence::Factory.new
+    registry.add_validation_factory presence_validation_factory
 
     presence_validation = registry.validation :presence
     expect(presence_validation).not_to be_nil
@@ -34,7 +42,25 @@ RSpec.describe 'errapi' do
 
     presence_validation.validate nil, context
     expect(context.errors?).to be(true)
-    expect(context.errors?(reason: :null)).to be(true)
+    expect(context.errors?(reason: :blank)).to be(true)
+  end
+
+  it "should build validation groups" do
+
+    registry = Errapi::ValidationRegistry.new
+    registry.add_validation_factory presence_validation_factory
+    registry.add_validation_factory custom_validation_factory
+
+    validations = registry.validations presence: true, custom: { foo: :bar }
+
+    context = new_context
+    validations.validate nil, context
+
+    expect(context.errors?).to be(true);
+    expect(context).to have_errors([
+      { reason: :blank },
+      { foo: :bar }
+    ])
   end
 
   it "should validate objects" do
@@ -54,9 +80,45 @@ RSpec.describe 'errapi' do
     validator.validate data, context
 
     expect(context.errors?).to be(true)
-    expect(context.errors).to have(2).items
+    expect(context).to have_errors([
+      { reason: :blank },
+      { reason: :blank }
+    ])
+  end
 
-    expect(context.errors[0]).to eq(OpenStruct.new(reason: :blank))
-    expect(context.errors[1]).to eq(OpenStruct.new(reason: :blank))
+  it "should serialize errors" do
+
+    context.add_error foo: 'bar'
+    context.add_error bar: 'baz'
+
+    expect(context.serialize).to eq([ {}, {} ])
+
+    serializer_class = Class.new do
+      def serialize_error error, serialized, context, options = {}
+        options.fetch(:only, []).each do |k|
+          serialized[k] = error.send k if error.respond_to? k
+        end
+      end
+    end
+
+    context.plugins << serializer_class.new
+
+    expect(context.serialize(only: %i(foo))).to eq([ { foo: 'bar' }, {} ])
+    expect(context.serialize(only: %i(bar))).to eq([ {}, { bar: 'baz' } ])
+    expect(context.serialize(only: %i(foo bar))).to eq([ { foo: 'bar' }, { bar: 'baz' } ])
+
+    other_serializer_class = Class.new do
+      def serialize_error error, serialized, context, options = {}
+        serialized[:type] = :error
+      end
+    end
+
+    context.plugins << other_serializer_class.new
+
+    expect(context.serialize(only: %i(foo bar))).to eq([ { type: :error, foo: 'bar' }, { type: :error, bar: 'baz' } ])
+  end
+
+  def new_context
+    Errapi::ValidationContext.new
   end
 end

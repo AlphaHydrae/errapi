@@ -12,8 +12,8 @@ module Errapi
       @plugins = options[:plugins] || []
     end
 
+    # TODO: allow error creation to be configured
     def new_error options = {}
-      # TODO: allow this to be configured
       OpenStruct.new options
     end
 
@@ -22,13 +22,35 @@ module Errapi
       error = new_error options
 
       @plugins.each do |plugin|
-        plugin.build_error error, self if plugin.respond_to? :build_error
+        plugin.build_error error, self, options if plugin.respond_to? :build_error
       end
 
       yield error if block_given?
 
       @errors << error
       self
+    end
+
+    def validate value, options = {}
+      return unless block_given?
+
+      validation_options = options.dup
+
+      @plugins.each do |plugin|
+        plugin.build_validation_options validation_options, self if plugin.respond_to? :build_validation_options
+      end
+
+      n = @errors.length
+
+      if validate? value, validation_options
+        yield value, self, validation_options
+      end
+
+      @errors.length <= n
+    end
+
+    def validate? value, options = {}
+      @plugins.all?{ |plugin| !plugin.respond_to?(:validate?) || plugin.validate?(value, self, options) }
     end
 
     def errors? criteria = {}, &block
@@ -43,6 +65,22 @@ module Errapi
     def clear
       @errors.clear
       @data = OpenStruct.new
+    end
+
+    def serialize options = {}
+      result = []
+
+      @errors.each do |error|
+        serialized_error = {}
+
+        @plugins.each do |plugin|
+          plugin.serialize_error error, serialized_error, self, options if plugin.respond_to? :serialize_error
+        end
+
+        result << serialized_error
+      end
+
+      result
     end
 
     private

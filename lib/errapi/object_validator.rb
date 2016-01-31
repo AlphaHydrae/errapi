@@ -35,13 +35,13 @@ module Errapi
         validate_targets navigator, context, options
       else
         navigator = Errapi::Plugins::Navigator.new
-        context.plugins << navigator
+        context.add_plugin navigator
 
         navigator.with value do
           validate_targets navigator, context, options
         end
 
-        context.plugins.delete navigator
+        context.remove_plugin navigator
       end
     end
 
@@ -49,7 +49,7 @@ module Errapi
 
     def validate_targets navigator, context, options
       @target_validation_groups.each do |group|
-        navigator.navigate group.target do
+        navigator.navigate context, group.target do
           navigator.validate group, context, options.merge(navigator: navigator)
         end
       end

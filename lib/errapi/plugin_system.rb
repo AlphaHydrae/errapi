@@ -3,45 +3,58 @@ module Errapi
 
     def add_plugin plugin, options = {}
       plugin_name = options[:name]
-      plugin_name ||= plugin.name if plugin.respond_to? :name
-      raise "Plugin must respond to :name or be given with the :name option" unless plugin_name
-      raise "There is already a plugin named #{plugin_name}" if @plugins.key? plugin_name.to_sym
-      @plugins[plugin_name.to_sym] = plugin
+      plugin_name ||= plugin.plugin_name if plugin.respond_to? :plugin_name
+      raise "There is already a plugin named #{plugin_name}" if plugin_name && @plugins_by_name.key?(plugin_name.to_sym)
+
+      @plugins << plugin
+      @plugins_by_name[plugin_name.to_sym] = plugin if plugin_name
+
       self
     end
 
-    def plugins
-      @plugins_view
+    def remove_plugin plugin, options = {}
+      @plugins.delete plugin
+      @plugins_by_name.delete_if{ |k,v| v == plugin }
+      self
+    end
+
+    def plugin name
+      @plugins_by_name[name.to_sym]
+    end
+
+    def plugin! name
+      p = @plugins_by_name[name.to_sym]
+      raise "No plugin named #{name}" unless p
+      p
+    end
+
+    def yield_plugins operation, *args, &block
+      yield_plugins_recursive @plugins.dup, operation, *args, &block
     end
 
     private
 
+    def yield_plugins_recursive plugins, operation, *args, &block
+      current_plugin = plugins.shift
+      if current_plugin.nil?
+        block.call
+      elsif current_plugin.respond_to? operation
+        current_plugin.send operation, *args do
+          yield_plugins_recursive plugins, operation, *args, &block
+        end
+      else
+        yield_plugins_recursive plugins, operation, *args, &block
+      end
+    end
+
     def initialize_plugins
-      @plugins = {}
-      @plugins_view = PluginsView.new @plugins
+      @plugins = []
+      @plugins_by_name = {}
     end
 
     def call_plugins operation, *args
-      @plugins.each_value do |plugin|
+      @plugins.each do |plugin|
         plugin.send operation, *args if plugin.respond_to? operation
-      end
-    end
-
-    class PluginsView
-      def initialize plugins
-        @plugins = plugins
-      end
-
-      def respond_to? symbol
-        super(symbol) || @plugins.include?(symbol.to_sym)
-      end
-
-      def method_missing symbol, *args, &block
-        if @plugins.include?(symbol.to_sym) && args.empty?
-          @plugins[symbol.to_sym]
-        else
-          super symbol, *args, &block
-        end
       end
     end
   end

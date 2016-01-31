@@ -3,15 +3,15 @@ require File.join(File.dirname(__FILE__), 'plugin_system.rb')
 
 module Errapi
   class ValidationContext
+    include PluginSystem
 
     attr_reader :data
     attr_reader :errors
-    attr_reader :plugins
 
     def initialize options = {}
       @errors = []
-      @plugins = []
       @data = OpenStruct.new options[:data] || {}
+      initialize_plugins
     end
 
     # TODO: allow error creation to be configured
@@ -23,9 +23,7 @@ module Errapi
 
       error = new_error options
 
-      @plugins.each do |plugin|
-        plugin.build_error error, self, options if plugin.respond_to? :build_error
-      end
+      call_plugins :build_error, error, self, options
 
       yield error if block_given?
 
@@ -38,9 +36,7 @@ module Errapi
 
       validation_options = options.dup
 
-      @plugins.each do |plugin|
-        plugin.build_validation_options validation_options, self if plugin.respond_to? :build_validation_options
-      end
+      call_plugins :build_validation_options, validation_options, self
 
       n = @errors.length
 
@@ -75,9 +71,7 @@ module Errapi
       @errors.each do |error|
         serialized_error = {}
 
-        @plugins.each do |plugin|
-          plugin.serialize_error error, serialized_error, self, options if plugin.respond_to? :serialize_error
-        end
+        call_plugins :serialize_error, error, serialized_error, self, options
 
         result << serialized_error
       end

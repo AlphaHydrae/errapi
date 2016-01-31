@@ -21,6 +21,28 @@ module Errapi::Plugins
       self
     end
 
+    def around_navigate context, nav_type, target, position = nil
+      if nav_type == :access
+        with "#{@current_location}/#{target}" do
+          yield
+        end
+      elsif nav_type == :each
+        with "#{@current_location}/#{target}/#{position}" do
+          yield
+        end
+      elsif nav_type == :each_key
+        with "#{@current_location}/#{target}/#{position}" do
+          yield
+        end
+      elsif nav_type == :each_value
+        with "#{@current_location}/#{target}/#{position}" do
+          yield
+        end
+      else
+        yield
+      end
+    end
+
     def build_error error, context, options = {}
       location = effective_location options
       if location

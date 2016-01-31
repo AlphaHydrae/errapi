@@ -9,6 +9,10 @@ module Errapi::Plugins
       @current_metadata = {}
     end
 
+    def plugin_name
+      :navigator
+    end
+
     def set_value value, metadata = {}
       @current_value = value
       @current_metadata = metadata
@@ -31,7 +35,7 @@ module Errapi::Plugins
       self
     end
 
-    def navigate *args, &block
+    def navigate context, *args
       options = args.last.kind_of?(Hash) ? args.pop : {}
 
       nav_type = :access
@@ -50,21 +54,37 @@ module Errapi::Plugins
 
       if nav_type == :access && @current_metadata.fetch(:value_set, true)
         new_metadata[:value_set] ||= value_has_target
-        with new_value, new_metadata, &block
+        context.yield_plugins :around_navigate, context, nav_type, target do
+          with new_value, new_metadata do
+            yield
+          end
+        end
       elsif nav_type == :each && new_value.kind_of?(Array)
         new_metadata[:value_set] = true
         new_value.each.with_index do |value,i|
-          with new_value[i], new_metadata
+          context.yield_plugins :around_navigate, context, nav_type, target, i do
+            with new_value[i], new_metadata.merge(value_index: i) do
+              yield
+            end
+          end
         end
       elsif nav_type == :each_key && new_value.respond_to?(:each_key)
         new_metadata[:value_set] = true
         new_value.each_key do |key|
-          with key, new_metadata
+          context.yield_plugins :around_navigate, context, nav_type, target, key do
+            with key, new_metadata do
+              yield
+            end
+          end
         end
       elsif nav_type == :each_value && new_value.respond_to?(:each_value)
         new_metadata[:value_set] = true
-        new_value.each_value do |value|
-          with value, new_metadata
+        new_value.each_pair do |key,value|
+          context.yield_plugins :around_navigate, context, nav_type, target, key do
+            with value, new_metadata.merge(value_key: key) do
+              yield
+            end
+          end
         end
       else
         self

@@ -68,6 +68,9 @@ RSpec.describe 'errapi' do
     registry = Errapi::ValidationRegistry.new
     registry.add_validation_factory presence_validation_factory
 
+    location_plugin = Errapi::Plugins::Location.new
+    context.add_plugin location_plugin
+
     validator = Errapi::ObjectValidator.new registry: registry do
       validates :foo, presence: true
       validates :bar, presence: true do
@@ -81,8 +84,8 @@ RSpec.describe 'errapi' do
 
     expect(context.errors?).to be(true)
     expect(context).to have_errors([
-      { reason: :blank },
-      { reason: :blank }
+      { reason: :blank, location: '/foo' },
+      { reason: :blank, location: '/bar' }
     ])
   end
 
@@ -101,7 +104,7 @@ RSpec.describe 'errapi' do
       end
     end
 
-    context.plugins << serializer_class.new
+    context.add_plugin serializer_class.new
 
     expect(context.serialize(only: %i(foo))).to eq([ { foo: 'bar' }, {} ])
     expect(context.serialize(only: %i(bar))).to eq([ {}, { bar: 'baz' } ])
@@ -113,7 +116,7 @@ RSpec.describe 'errapi' do
       end
     end
 
-    context.plugins << other_serializer_class.new
+    context.add_plugin other_serializer_class.new
 
     expect(context.serialize(only: %i(foo bar))).to eq([ { type: :error, foo: 'bar' }, { type: :error, bar: 'baz' } ])
   end

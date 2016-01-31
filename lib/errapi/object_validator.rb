@@ -6,7 +6,6 @@ module Errapi
     def initialize options = {}, &block
       @target_validation_groups = []
       @registry = options[:registry]
-      @navigator = Errapi::Plugins::Navigator.new
 
       raise "A validation registry must be supplied with the :registry option" unless @registry
 
@@ -30,18 +29,31 @@ module Errapi
     end
 
     def validate value, context, options = {}
-      context.plugins << @navigator
 
-      @target_validation_groups.each do |group|
-        @navigator.navigate @target do
-          @navigator.validate group, context, options
+      navigator = options[:navigator]
+      if navigator
+        validate_targets navigator, context, options
+      else
+        navigator = Errapi::Plugins::Navigator.new
+        context.plugins << navigator
+
+        navigator.with value do
+          validate_targets navigator, context, options
         end
-      end
 
-      context.plugins.delete @navigator
+        context.plugins.delete navigator
+      end
     end
 
     private
+
+    def validate_targets navigator, context, options
+      @target_validation_groups.each do |group|
+        navigator.navigate group.target do
+          navigator.validate group, context, options.merge(navigator: navigator)
+        end
+      end
+    end
 
     class TargetValidationGroup
       attr_reader :target

@@ -46,24 +46,25 @@ module Errapi::Plugins
 
       value_has_target = has? @current_value, target
       new_value = extract @current_value, target
+      new_metadata = @current_metadata.merge options.dup
 
-      if nav_type == :access
-        options[:value_set] ||= value_has_target
-        with new_value, options, &block
+      if nav_type == :access && @current_metadata.fetch(:value_set, true)
+        new_metadata[:value_set] ||= value_has_target
+        with new_value, new_metadata, &block
       elsif nav_type == :each && new_value.kind_of?(Array)
-        options[:value_set] = true
+        new_metadata[:value_set] = true
         new_value.each.with_index do |value,i|
-          with new_value[i], options
+          with new_value[i], new_metadata
         end
       elsif nav_type == :each_key && new_value.respond_to?(:each_key)
-        options[:value_set] = true
+        new_metadata[:value_set] = true
         new_value.each_key do |key|
-          with key, options
+          with key, new_metadata
         end
       elsif nav_type == :each_value && new_value.respond_to?(:each_value)
-        options[:value_set] = true
+        new_metadata[:value_set] = true
         new_value.each_value do |value|
-          with value, options
+          with value, new_metadata
         end
       else
         self
@@ -83,7 +84,7 @@ module Errapi::Plugins
     METADATA_OPTIONS = %i(value_set)
 
     def has? value, target
-      target.nil? || target.respond_to?(:call) || value.kind_of?(Hash) || value.respond_to?(target)
+      target.nil? || target.respond_to?(:call) || (value.kind_of?(Hash) && value.key?(target)) || value.respond_to?(target)
     end
 
     def extract value, target
